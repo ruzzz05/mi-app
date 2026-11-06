@@ -35,7 +35,7 @@ mi-app/
 │   │   ├── yonunca.csv     Preguntas de Yo nunca
 │   │   └── ask.csv         Preguntas de Ask
 │   │
-│   └── comidas/          Menú, qué toca hoy y lista de la compra
+│   └── comidas/          Mi-Menu: menú, qué toca hoy y lista de la compra
 │       ├── index.html
 │       ├── comidas.css     Tema blanco y amarillo
 │       ├── core.js         Estado guardado, navegación, avisos
