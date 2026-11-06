@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vinilos</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi App">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
+
+<link rel="stylesheet" href="styles.css">
+<style>
+  .page { max-width: 1100px; margin: 0 auto; padding: 32px 20px 24px; }
+
+  h1.page-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(32px, 8vw, 44px);
+    letter-spacing: -.02em;
+    line-height: 1.05;
+    margin: 8px 0 24px;
+  }
+
+  .controls {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 1fr;
+    max-width: 640px;
+    margin-bottom: 32px;
+  }
+  @media (min-width: 640px) {
+    .controls { grid-template-columns: 1.4fr 1fr auto; }
+  }
+
+  /* Rejilla de artistas */
+  #artists {
+    column-width: 300px;
+    column-gap: 20px;
+  }
+  .artist {
+    break-inside: avoid;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin: 0 0 20px;
+    box-shadow: var(--shadow);
+  }
+  .artist-name {
+    font-family: var(--serif);
+    font-size: 20px;
+    letter-spacing: -.01em;
+    margin: 0 0 14px;
+  }
+  .album {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+  .album img {
+    width: 72px;
+    height: 72px;
+    flex: none;
+    object-fit: cover;
+    border-radius: 8px;
+    background: var(--surface-2);
+    display: block;
+  }
+  .album span { font-size: 14px; line-height: 1.3; color: var(--ink); }
+
+  .empty { color: var(--ink-3); padding: 24px 0; }
+
+  #vinyl-counter {
+    margin-top: 24px;
+    padding: 24px 0;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0,0,0,.6);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+  .modal.open { display: flex; }
+  .modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 32px 24px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  }
+  .modal-content h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 22px;
+    margin: 0 0 4px;
+  }
+  .modal-content p { margin: 0 0 18px; color: var(--ink-2); font-size: 14px; }
+  .modal-content img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 10px;
+    background: var(--surface-2);
+    box-shadow: var(--shadow);
+    display: block;
+  }
+  .close-modal {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: none;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .close-modal svg { width: 18px; height: 18px; }
+</style>
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="back" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      Inicio
+    </a>
+    <span class="title">Vinilos</span>
+    <span class="spacer"></span>
+  </header>
+
+  <main class="page">
+    <h1 class="page-title">Artistas y álbumes</h1>
+
+    <div class="controls">
+      <input id="search" class="field" type="search" placeholder="Buscar artista o álbum" autocomplete="off">
+      <select id="tag-filter" class="field" aria-label="Filtrar por estilo">
+        <option value="">Todos los estilos</option>
+      </select>
+      <button id="random-btn" class="btn" type="button">Disco aleatorio</button>
+    </div>
+
+    <div id="artists"><p class="empty">Cargando biblioteca...</p></div>
+
+    <div id="vinyl-counter">Calculando colección...</div>
+  </main>
+
+  <div id="random-modal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <button class="close-modal" type="button" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+      <h2 id="random-title"></h2>
+      <p id="random-artist"></p>
+      <a id="random-link" target="_blank" rel="noopener">
+        <img id="random-image" alt="">
+      </a>
+    </div>
+  </div>
+
+<script src="vendor/papaparse.min.js"></script>
+<script>
+const PLACEHOLDER = "data:image/svg+xml;utf8," + encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='80' height='80' fill='#8a8782'/><circle cx='40' cy='40' r='22' fill='none' stroke='#fff' stroke-opacity='.6' stroke-width='3'/><circle cx='40' cy='40' r='4' fill='#fff' fill-opacity='.6'/></svg>"
+);
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let data = {};
+const searchInput = document.getElementById('search');
+const tagFilter = document.getElementById('tag-filter');
+const artistsDiv = document.getElementById('artists');
+
+function loadCSV() {
+  Papa.parse("musica.csv", {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: results => {
+      if (results.data && results.data.length > 0) {
+        processCSVData(results.data);
+      } else {
+        artistsDiv.innerHTML = '<p class="empty">El archivo CSV está vacío o no se pudo leer.</p>';
+      }
+    },
+    error: err => {
+      console.error("Error leyendo CSV:", err);
+      artistsDiv.innerHTML = '<p class="empty">Error cargando "musica.csv".</p>';
+    }
+  });
+}
+
+function processCSVData(csvData) {
+  data = {};
+  let totalAlbums = 0;
+
+  csvData.forEach(row => {
+    const artist = row.Artist ? row.Artist.trim() : "Desconocido";
+    const name = row.Name || "Sin título";
+    const image = (row.Image || "").trim();
+    const url = (row.Url || "#").trim();
+    const tags = row.Tags ? row.Tags.split('|').map(t => t.trim().toLowerCase()) : [];
+
+    if (!data[artist]) data[artist] = [];
+    data[artist].push({ name, image, tags, url });
+    totalAlbums++;
+  });
+
+  document.getElementById('vinyl-counter').textContent = `${totalAlbums} vinilos en la colección`;
+
+  populateTagFilter();
+  displayArtists(data);
+}
+
+function populateTagFilter() {
+  const tags = new Set();
+  Object.values(data).forEach(albums => albums.forEach(a => a.tags.forEach(t => t && tags.add(t))));
+  tagFilter.innerHTML = '<option value="">Todos los estilos</option>';
+  [...tags].sort().forEach(tag => {
+    const option = document.createElement('option');
+    option.value = tag;
+    option.textContent = tag;
+    tagFilter.appendChild(option);
+  });
+}
+
+function displayArtists(artistsData) {
+  const names = Object.keys(artistsData).sort((a, b) => a.localeCompare(b, 'es'));
+  if (names.length === 0) {
+    artistsDiv.innerHTML = '<p class="empty">No hay coincidencias.</p>';
+    return;
+  }
+  artistsDiv.innerHTML = names.map(artist => `
+    <section class="artist">
+      <h2 class="artist-name">${esc(artist)}</h2>
+      ${artistsData[artist].map(album => `
+        <div class="album">
+          <a href="${esc(album.url)}" target="_blank" rel="noopener">
+            <img src="${esc(album.image || PLACEHOLDER)}" alt="" loading="lazy" onerror="this.onerror=null;this.src=PLACEHOLDER">
+          </a>
+          <span>${esc(album.name)}</span>
+        </div>`).join('')}
+    </section>`).join('');
+}
+
+function searchAndFilterArtists() {
+  const q = searchInput.value.toLowerCase();
+  const tag = tagFilter.value;
+  const result = {};
+  for (const artist in data) {
+    const albums = data[artist].filter(a =>
+      (artist.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)) &&
+      (!tag || a.tags.includes(tag))
+    );
+    if (albums.length) result[artist] = albums;
+  }
+  displayArtists(result);
+}
+
+searchInput.addEventListener('input', searchAndFilterArtists);
+tagFilter.addEventListener('change', searchAndFilterArtists);
+
+const modal = document.getElementById('random-modal');
+const closeModal = () => modal.classList.remove('open');
+
+document.getElementById('random-btn').onclick = () => {
+  const all = [];
+  for (const artist in data) data[artist].forEach(album => all.push({ ...album, artist }));
+  if (!all.length) return;
+  const r = all[Math.floor(Math.random() * all.length)];
+  document.getElementById('random-title').textContent = r.name;
+  document.getElementById('random-artist').textContent = r.artist;
+  const img = document.getElementById('random-image');
+  img.onerror = () => { img.onerror = null; img.src = PLACEHOLDER; };
+  img.src = r.image || PLACEHOLDER;
+  document.getElementById('random-link').href = r.url || "#";
+  modal.classList.add('open');
+};
+
+document.querySelector('.close-modal').onclick = closeModal;
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+loadCSV();
+</script>
+<script src="pwa.js"></script>
+</body>
+</html>
