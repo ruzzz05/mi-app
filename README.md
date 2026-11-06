@@ -19,7 +19,8 @@ mi-app/
 │
 ├── shared/               Lo que usan todas las apps
 │   ├── styles.css          Tema blanco y negro, botones, campos
-│   └── pwa.js              Registra el service worker
+│   ├── pwa.js              Registra el service worker
+│   └── theme.js            Botón de modo claro/oscuro (lo inserta solo)
 │
 ├── apps/                 Una carpeta por app, todo autocontenido
 │   │
