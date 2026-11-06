@@ -24,7 +24,7 @@
     "name": "Mi-Menu",
     "description": "Menú de comidas y cenas, qué toca hoy y lista de la compra.",
     "path": "apps/comidas/index.html",
-    "accent": "#f5c518",
+    "accent": "#ffd60a",
     "files": [
       "apps/comidas/comidas.css",
       "apps/comidas/recipes.js",
