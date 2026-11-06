@@ -55,6 +55,8 @@
       NAMES.forEach(n => $('screen-' + n).classList.toggle('hidden', n !== name));
       document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.screen === name));
       C.render();
+      const sc = document.querySelector('.scroller');
+      if (sc) sc.scrollTop = 0;
     },
 
     render() {

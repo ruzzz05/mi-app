@@ -13,7 +13,6 @@
   }
 
   const which = () => (C.state.draft ? 'draft' : (C.state.menu ? 'menu' : null));
-  const dishName = ex => (ex.dishId ? (C.state.dishes.find(d => d.id === ex.dishId) || { name: 'plato borrado' }).name : ex.ingredient);
 
   function render(el) {
     el.onclick = null;
@@ -102,19 +101,14 @@
     el.innerHTML = `
       <div class="screen-head"><h2>${isDraft ? 'Borrador del menú' : 'Tu menú'}</h2></div>
       <p class="sub">${m.days} ${m.days === 1 ? 'día' : 'días'} desde ${dayLabel(m.startDate, 0).toLowerCase()}${isDraft ? '. Revísalo y confírmalo.' : '.'}</p>
+      ${isDraft ? '<button class="btn big" type="button" data-act="confirm" style="width:100%;margin-bottom:12px">Confirmar menú</button>' : ''}
       <div class="toolbar">
         ${isDraft
-          ? `<button class="btn" type="button" data-act="confirm">Confirmar menú</button>
-             <button class="btn ghost" type="button" data-act="regen-all">Regenerar todo</button>
-             <button class="btn ghost" type="button" data-act="exclude">No quiero…</button>
+          ? `<button class="btn ghost" type="button" data-act="regen-all">Regenerar todo</button>
              <button class="btn ghost" type="button" data-act="discard">Descartar</button>`
-          : `<button class="btn ghost" type="button" data-act="exclude">No quiero…</button>
-             <button class="btn ghost" type="button" data-act="fill">Rellenar huecos</button>
+          : `<button class="btn ghost" type="button" data-act="fill">Rellenar huecos</button>
              <button class="btn ghost" type="button" data-act="new">Menú nuevo</button>`}
       </div>
-      <div class="chips">${m.exclusions.map((ex, i) => `
-        <button class="chip" type="button" data-act="chip" data-i="${i}" title="Quitar exclusión">Sin ${esc(dishName(ex))} · ${ex.scope === 'menu' ? 'todo el menú' : dayLabel(m.startDate, ex.day).split(',')[0].toLowerCase()}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>`).join('')}</div>
       ${days.join('')}`;
 
     const ctx = () => ({ dishes: C.state.dishes, menu: C.state[w] });
@@ -129,8 +123,6 @@
       else if (a === 'regen-day') set(P.regenerateDay({ ...ctx(), day }));
       else if (a === 'regen-all') set(P.newMenu({ dishes: C.state.dishes, days: m.days, startDate: m.startDate, firstMeal: m.firstMeal, exclusions: m.exclusions }));
       else if (a === 'fill') { set(P.fillMenu(ctx())); C.toast('Huecos rellenados'); }
-      else if (a === 'exclude') openExclude(w);
-      else if (a === 'chip') { const ex = m.exclusions.slice(); ex.splice(+b.dataset.i, 1); set({ ...m, exclusions: ex }); }
       else if (a === 'confirm') {
         C.state.menu = C.state.draft; C.state.draft = null; C.state.list = P.emptyList();
         C.save(); C.go('hoy'); C.toast('Menú confirmado');
@@ -150,14 +142,7 @@
     const key = P.slotKey(d, slot);
     const cur = m.plan[key];
     const set = menu => { C.state[w] = menu; C.save(); C.closeSheet(); C.render(); };
-    const ctx = () => ({ dishes: C.state.dishes, menu: C.state[w] });
-
     C.openSheet(`${dayLabel(m.startDate, d)} · ${LABEL[slot]}`, `
-      ${cur ? `<div class="actions-grid">
-        <button id="a-reroll" class="btn ghost" type="button">Otro plato</button>
-        ${cur.id ? `<button id="a-no-menu" class="btn ghost" type="button">No la quiero en todo el menú</button>
-        <button id="a-no-day" class="btn ghost" type="button">No la quiero este día</button>` : ''}
-      </div><label class="form-label">O elige a mano</label>` : ''}
       <input id="pick-input" class="field" type="text" placeholder="Busca o escribe un plato" autocomplete="off">
       <div id="pick-list" style="margin-top:14px"></div>
       <div class="sheet-actions">
@@ -191,41 +176,7 @@
 
     if (cur) {
       $('pick-remove').onclick = () => { const plan = { ...m.plan }; delete plan[key]; set({ ...m, plan }); };
-      $('a-reroll').onclick = () => {
-        const next = P.rerollSlot({ ...ctx(), day: d, slot });
-        const same = next.plan[key] && next.plan[key].id === cur.id;
-        set(next);
-        C.toast(same ? 'No hay otro plato disponible' : 'Plato cambiado');
-      };
-      if (cur.id) {
-        $('a-no-menu').onclick = () => set(P.excludeAndReplace({ ...ctx(), exclusion: { scope: 'menu', dishId: cur.id } }));
-        $('a-no-day').onclick = () => set(P.excludeAndReplace({ ...ctx(), exclusion: { scope: 'day', day: d, dishId: cur.id } }));
-      }
     }
-  }
-
-  // ---------- "No quiero…" libre: un plato o un ingrediente ----------
-  function openExclude(w) {
-    const m = C.state[w];
-    C.openSheet('No quiero…', `
-      <label class="form-label" for="ex-text">Plato o ingrediente</label>
-      <input id="ex-text" class="field" type="text" placeholder="Por ejemplo: pasta, tomate" autocomplete="off">
-      <label class="form-label" for="ex-scope">¿Cuándo?</label>
-      <select id="ex-scope" class="field">
-        <option value="menu">En todo el menú</option>
-        ${Array.from({ length: m.days }, (_, i) => `<option value="${i}">Solo ${dayLabel(m.startDate, i).toLowerCase()}</option>`).join('')}
-      </select>
-      <div class="sheet-actions"><button id="ex-apply" class="btn" type="button">Excluir y reemplazar</button></div>`);
-    $('ex-apply').onclick = () => {
-      const text = $('ex-text').value.trim();
-      if (!text) { C.toast('Escribe qué no quieres'); return; }
-      const dish = C.state.dishes.find(x => x.name.toLowerCase() === text.toLowerCase());
-      const what = dish ? { dishId: dish.id } : { ingredient: text };
-      const v = $('ex-scope').value;
-      const exclusion = v === 'menu' ? { scope: 'menu', ...what } : { scope: 'day', day: +v, ...what };
-      C.state[w] = P.excludeAndReplace({ dishes: C.state.dishes, menu: m, exclusion });
-      C.save(); C.closeSheet(); C.render(); C.toast('Exclusión aplicada');
-    };
   }
 
   C.register('menu', { render });
