@@ -1,0 +1,24 @@
+[
+  {
+    "id": "vinilos",
+    "name": "Vinilos",
+    "description": "Mi biblioteca de discos, por artista y estilo.",
+    "path": "vinilos.html",
+    "files": ["musica.csv", "vendor/papaparse.min.js"]
+  },
+  {
+    "id": "ask",
+    "name": "Ask",
+    "description": "Preguntas para el grupo: Yo nunca y Ask.",
+    "path": "ask.html",
+    "files": ["yonunca.csv", "ask.csv"]
+  },
+  {
+    "id": "comidas",
+    "name": "Comidas",
+    "description": "Planning semanal de comidas y lista de la compra.",
+    "path": "apps/comidas/index.html",
+    "accent": "#f5c518",
+    "files": ["apps/comidas/comidas.css", "apps/comidas/comidas.js"]
+  }
+]

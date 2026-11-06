@@ -66,7 +66,13 @@
   }
   .tile p { margin: 0; font-size: 14px; color: var(--ink-2); }
   .tile svg { flex: none; width: 22px; height: 22px; color: var(--ink-3); }
-  .tile:nth-child(2) { animation-delay: .06s; }
+  .tile .dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
 
   .social {
     margin-top: 40px;
@@ -101,23 +107,7 @@
       <h1>Mi App</h1>
     </header>
 
-    <nav class="menu" aria-label="Aplicaciones">
-      <a class="tile rise" href="vinilos.html">
-        <div>
-          <h2>Vinilos</h2>
-          <p>Mi biblioteca de discos, por artista y estilo.</p>
-        </div>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-      </a>
-
-      <a class="tile rise" href="ask.html">
-        <div>
-          <h2>Ask</h2>
-          <p>Preguntas para el grupo: Yo nunca y Ask.</p>
-        </div>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
-      </a>
-    </nav>
+    <nav class="menu" id="menu" aria-label="Aplicaciones"></nav>
 
     <footer class="social rise">
       <a href="https://github.com/ruzzz05" target="_blank" rel="noopener" aria-label="GitHub">
@@ -131,6 +121,27 @@
     </footer>
   </main>
 
+<script>
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
+
+// El menú se construye a partir de apps.json: añade o quita entradas allí.
+fetch('apps.json')
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(apps => {
+    document.getElementById('menu').innerHTML = apps.map((app, i) => `
+      <a class="tile rise" style="animation-delay:${i * 0.06}s" href="${esc(app.path)}">
+        <div>
+          <h2>${esc(app.name)}${app.accent ? `<span class="dot" style="background:${esc(app.accent)}"></span>` : ''}</h2>
+          <p>${esc(app.description || '')}</p>
+        </div>
+        ${CHEVRON}
+      </a>`).join('');
+  })
+  .catch(() => {
+    document.getElementById('menu').innerHTML = '<p style="color:var(--ink-3)">No se pudo cargar la lista de aplicaciones.</p>';
+  });
+</script>
 <script src="pwa.js"></script>
 </body>
 </html>

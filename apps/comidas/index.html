@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Comidas</title>
+
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="icon" type="image/png" href="../../icons/icon-192.png">
+<link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi App">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fffdf5">
+<meta name="color-scheme" content="light">
+
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="comidas.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="back" href="../../index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      Inicio
+    </a>
+    <span class="title">Comidas</span>
+    <span class="spacer"></span>
+  </header>
+
+  <main class="wrap">
+    <div class="segmented" role="tablist">
+      <button type="button" role="tab" data-tab="semana" class="active">Semana</button>
+      <button type="button" role="tab" data-tab="platos">Platos</button>
+      <button type="button" role="tab" data-tab="compra">Compra</button>
+    </div>
+
+    <!-- SEMANA -->
+    <section id="tab-semana">
+      <div class="toolbar">
+        <button id="btn-suggest" class="btn" type="button">Sugerir huecos</button>
+        <button id="btn-clear" class="btn ghost" type="button">Vaciar semana</button>
+      </div>
+      <div id="week"></div>
+    </section>
+
+    <!-- PLATOS -->
+    <section id="tab-platos" class="hidden">
+      <div class="toolbar">
+        <button id="btn-new-dish" class="btn" type="button">Nuevo plato</button>
+      </div>
+      <div id="dishes"></div>
+    </section>
+
+    <!-- COMPRA -->
+    <section id="tab-compra" class="hidden">
+      <div class="toolbar">
+        <button id="btn-copy" class="btn" type="button">Copiar lista</button>
+        <button id="btn-uncheck" class="btn ghost" type="button">Desmarcar todo</button>
+      </div>
+      <div id="shopping"></div>
+    </section>
+  </main>
+
+  <!-- Hoja inferior reutilizable -->
+  <div id="sheet" class="sheet" aria-hidden="true">
+    <div class="sheet-panel" role="dialog" aria-modal="true">
+      <div class="sheet-head">
+        <h2 id="sheet-title"></h2>
+        <button id="sheet-close" class="icon-btn" type="button" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+        </button>
+      </div>
+      <div id="sheet-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+<script src="comidas.js"></script>
+<script src="../../pwa.js"></script>
+</body>
+</html>

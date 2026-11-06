@@ -1,30 +1,33 @@
 // Cambia VERSION cuando modifiques archivos de la app para forzar la actualización.
-const VERSION = 'v3';
+const VERSION = 'v5';
 const CACHE = `mi-app-${VERSION}`;
 
+// Núcleo de la app. Los archivos de cada módulo se leen de apps.json (campos "path" y "files").
 const SHELL = [
   './',
   'index.html',
-  'vinilos.html',
-  'ask.html',
   'styles.css',
   'pwa.js',
+  'apps.json',
   'manifest.webmanifest',
-  'vendor/papaparse.min.js',
-  'musica.csv',
-  'yonunca.csv',
-  'ask.csv',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE)
-      .then(cache => cache.addAll(SHELL))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await cache.addAll(SHELL);
+    try {
+      const res = await fetch('apps.json', { cache: 'no-store' });
+      const apps = await res.json();
+      const files = apps.flatMap(a => [a.path, ...(a.files || [])]);
+      // Cada archivo por separado: si uno falla, no se cae toda la instalación.
+      await Promise.all(files.map(f => cache.add(f).catch(() => {})));
+    } catch (err) { /* sin apps.json: se cachea al usarlas */ }
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
@@ -69,7 +72,7 @@ self.addEventListener('fetch', event => {
   const sameOrigin = url.origin === self.location.origin;
 
   // Páginas y datos: red primero (ves los cambios al recargar), caché si no hay conexión.
-  if (sameOrigin && (request.mode === 'navigate' || url.pathname.endsWith('.csv') || url.pathname.endsWith('.html'))) {
+  if (sameOrigin && (request.mode === 'navigate' || url.pathname.endsWith('.csv') || url.pathname.endsWith('.html') || url.pathname.endsWith('.json'))) {
     event.respondWith(networkFirst(request));
     return;
   }
