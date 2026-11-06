@@ -55,7 +55,7 @@ test('mainIngredient es el de mayor cantidad y no hay principal si empatan', () 
 // =========================================================
 test('migrateState sin datos devuelve un estado vacio', () => {
   assert.eq(Planner.migrateState(null), {
-    dishes: [], draft: null, menu: null, list: { removed: [], extras: [], checked: {} }, seedPurged: true
+    dishes: [], draft: null, menu: null, list: { removed: [], extras: [], checked: {} }, seedPurged: true, updatedAt: 0
   });
 });
 
@@ -72,7 +72,7 @@ test('migrateState normaliza platos antiguos, descarta el plan y conserva lo mar
 });
 
 test('migrateState conserva un estado ya nuevo sin cambios', () => {
-  const state = { dishes: [dish('a', ['x'])], draft: null, menu: { days: 2 }, list: { removed: ['x'], extras: [], checked: {} }, seedPurged: true };
+  const state = { dishes: [dish('a', ['x'])], draft: null, menu: { days: 2 }, list: { removed: ['x'], extras: [], checked: {} }, seedPurged: true, updatedAt: 1700000000000 };
   assert.eq(Planner.migrateState(JSON.parse(JSON.stringify(state))), state);
 });
 
@@ -136,4 +136,9 @@ test('migrateState hace lo mismo con el borrador y quita exclusiones de recetas 
   ));
   assert.eq(s.draft.plan['0-comida'], { id: null, name: 'Ramen' });
   assert.eq(s.draft.exclusions, []);
+});
+
+test('migrateState conserva updatedAt y lo pone a 0 si no existe', () => {
+  assert.eq(Planner.migrateState({ dishes: [], updatedAt: 123 }).updatedAt, 123);
+  assert.eq(Planner.migrateState({ dishes: [] }).updatedAt, 0);
 });

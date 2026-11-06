@@ -95,7 +95,8 @@
       draft: clean(s.draft),
       menu: clean(s.menu),
       list: s.list || { ...emptyList(), checked: s.checked || {} },
-      seedPurged: true
+      seedPurged: true,
+      updatedAt: s.updatedAt || 0
     };
   }
 

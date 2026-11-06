@@ -22,8 +22,22 @@
 
     $, esc,
 
-    save() {
+    // touch:false guarda sin considerarlo un cambio del usuario (no cambia la marca de tiempo
+    // ni dispara la subida a la nube).
+    save(opts) {
+      const touch = !opts || opts.touch !== false;
+      if (touch) C.state.updatedAt = Date.now();
       try { localStorage.setItem(KEY, JSON.stringify(C.state)); } catch (e) { /* sin almacenamiento */ }
+      if (touch && C.onSave) C.onSave(C.state);
+    },
+
+    onSave: null, // lo rellena cloud.js
+
+    // Sustituye los datos por los recuperados de la nube
+    adoptState(next) {
+      C.state = next;
+      C.save({ touch: false });
+      C.go(current && screens[current] ? current : (next.menu ? 'hoy' : (next.dishes.length ? 'menu' : 'recetas')));
     },
 
     toast(msg) {
@@ -123,7 +137,7 @@
         // Copia previa a la limpieza de recetas de ejemplo (solo la primera vez)
         if (raw && !JSON.parse(raw).seedPurged) localStorage.setItem(KEY + '.pre-limpieza', raw);
       } catch (e) { /* sin almacenamiento */ }
-      C.save();
+      C.save({ touch: false });
       C.go(!s.dishes.length ? 'recetas' : (s.menu ? 'hoy' : 'menu'));
     }
   };
