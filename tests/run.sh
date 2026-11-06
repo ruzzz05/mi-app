@@ -11,7 +11,7 @@ done
 [ -z "$BROWSER" ] && { echo "No se encontró Edge ni Chrome"; exit 2; }
 
 STATUS=0
-for page in tests/*/*.test.html; do
+for page in apps/*/tests/*.test.html; do
   echo "== $page"
   URL="file:///$(cygpath -m "$PWD/$page")"
   OUT=$("$BROWSER" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=4000 --dump-dom "$URL" 2>/dev/null)

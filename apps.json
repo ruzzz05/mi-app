@@ -3,32 +3,40 @@
     "id": "vinilos",
     "name": "Vinilos",
     "description": "Mi biblioteca de discos, por artista y estilo.",
-    "path": "vinilos.html",
+    "path": "apps/vinilos/index.html",
     "files": [
-      "musica.csv",
-      "vendor/papaparse.min.js"
+      "apps/vinilos/musica.csv",
+      "apps/vinilos/papaparse.min.js"
     ]
   },
   {
     "id": "ask",
     "name": "Ask",
     "description": "Preguntas para el grupo: Yo nunca y Ask.",
-    "path": "ask.html",
+    "path": "apps/ask/index.html",
     "files": [
-      "yonunca.csv",
-      "ask.csv"
+      "apps/ask/yonunca.csv",
+      "apps/ask/ask.csv"
     ]
   },
   {
     "id": "comidas",
     "name": "Comidas",
-    "description": "Planning semanal de comidas y lista de la compra.",
+    "description": "Menú de comidas y cenas, qué toca hoy y lista de la compra.",
     "path": "apps/comidas/index.html",
     "accent": "#f5c518",
     "files": [
       "apps/comidas/comidas.css",
+      "apps/comidas/recipes.js",
       "apps/comidas/planner.js",
-      "apps/comidas/comidas.js"
+      "apps/comidas/shopping.js",
+      "apps/comidas/schedule.js",
+      "apps/comidas/core.js",
+      "apps/comidas/main.js",
+      "apps/comidas/screens/recetas.js",
+      "apps/comidas/screens/menu.js",
+      "apps/comidas/screens/hoy.js",
+      "apps/comidas/screens/compra.js"
     ]
   }
 ]

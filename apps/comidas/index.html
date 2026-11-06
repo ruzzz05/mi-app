@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#fffdf5">
 <meta name="color-scheme" content="light">
 
-<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="../../shared/styles.css">
 <link rel="stylesheet" href="comidas.css">
 </head>
 
@@ -30,44 +30,30 @@
   </header>
 
   <main class="wrap">
-    <div class="segmented" role="tablist">
-      <button type="button" role="tab" data-tab="semana" class="active">Semana</button>
-      <button type="button" role="tab" data-tab="platos">Platos</button>
-      <button type="button" role="tab" data-tab="compra">Compra</button>
-    </div>
-
-    <!-- SEMANA -->
-    <section id="tab-semana">
-      <div class="toolbar">
-        <button id="btn-generate" class="btn" type="button">Generar menú</button>
-        <button id="btn-exclude" class="btn ghost" type="button">No quiero…</button>
-        <button id="btn-clear" class="btn ghost" type="button">Semana nueva</button>
-      </div>
-      <div id="exclusions" class="chips"></div>
-      <div id="week"></div>
-    </section>
-
-    <!-- PLATOS -->
-    <section id="tab-platos" class="hidden">
-      <div class="toolbar">
-        <button id="btn-new-dish" class="btn" type="button">Nuevo plato</button>
-      </div>
-      <div id="dishes"></div>
-    </section>
-
-    <!-- COMPRA -->
-    <section id="tab-compra" class="hidden">
-      <div class="add-row">
-        <input id="add-item" class="field" type="text" placeholder="Añadir producto a la lista" autocomplete="off">
-        <button id="btn-add-item" class="btn" type="button" aria-label="Añadir producto">+</button>
-      </div>
-      <div class="toolbar">
-        <button id="btn-copy" class="btn" type="button">Copiar lista</button>
-        <button id="btn-uncheck" class="btn ghost" type="button">Desmarcar todo</button>
-      </div>
-      <div id="shopping"></div>
-    </section>
+    <section id="screen-hoy"></section>
+    <section id="screen-menu" class="hidden"></section>
+    <section id="screen-compra" class="hidden"></section>
+    <section id="screen-recetas" class="hidden"></section>
   </main>
+
+  <nav class="tabbar" aria-label="Secciones">
+    <button type="button" data-screen="hoy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+      <span>Hoy</span>
+    </button>
+    <button type="button" data-screen="menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg>
+      <span>Menú</span>
+    </button>
+    <button type="button" data-screen="compra">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h10.2l2-8H6.2"/><circle cx="9" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/></svg>
+      <span>Compra</span>
+    </button>
+    <button type="button" data-screen="recetas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3V4z"/><path d="M5 17a3 3 0 013-3h11"/></svg>
+      <span>Recetas</span>
+    </button>
+  </nav>
 
   <!-- Hoja inferior reutilizable -->
   <div id="sheet" class="sheet" aria-hidden="true">
@@ -84,8 +70,16 @@
 
   <div id="toast" class="toast" role="status"></div>
 
+<script src="recipes.js"></script>
 <script src="planner.js"></script>
-<script src="comidas.js"></script>
-<script src="../../pwa.js"></script>
+<script src="shopping.js"></script>
+<script src="schedule.js"></script>
+<script src="core.js"></script>
+<script src="screens/recetas.js"></script>
+<script src="screens/menu.js"></script>
+<script src="screens/hoy.js"></script>
+<script src="screens/compra.js"></script>
+<script src="main.js"></script>
+<script src="../../shared/pwa.js"></script>
 </body>
 </html>

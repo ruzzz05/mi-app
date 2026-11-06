@@ -1,0 +1,1 @@
+window.Comidas.start();

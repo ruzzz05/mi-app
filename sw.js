@@ -1,13 +1,13 @@
 // Cambia VERSION cuando modifiques archivos de la app para forzar la actualización.
-const VERSION = 'v6';
+const VERSION = 'v10';
 const CACHE = `mi-app-${VERSION}`;
 
 // Núcleo de la app. Los archivos de cada módulo se leen de apps.json (campos "path" y "files").
 const SHELL = [
   './',
   'index.html',
-  'styles.css',
-  'pwa.js',
+  'shared/styles.css',
+  'shared/pwa.js',
   'apps.json',
   'manifest.webmanifest',
   'icons/icon-192.png',
