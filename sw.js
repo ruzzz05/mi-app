@@ -1,5 +1,5 @@
 // Cambia VERSION cuando modifiques archivos de la app para forzar la actualización.
-const VERSION = 'v1';
+const VERSION = 'v3';
 const CACHE = `mi-app-${VERSION}`;
 
 const SHELL = [
