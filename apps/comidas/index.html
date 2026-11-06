@@ -39,9 +39,11 @@
     <!-- SEMANA -->
     <section id="tab-semana">
       <div class="toolbar">
-        <button id="btn-suggest" class="btn" type="button">Sugerir huecos</button>
-        <button id="btn-clear" class="btn ghost" type="button">Vaciar semana</button>
+        <button id="btn-generate" class="btn" type="button">Generar menú</button>
+        <button id="btn-exclude" class="btn ghost" type="button">No quiero…</button>
+        <button id="btn-clear" class="btn ghost" type="button">Semana nueva</button>
       </div>
+      <div id="exclusions" class="chips"></div>
       <div id="week"></div>
     </section>
 
@@ -55,6 +57,10 @@
 
     <!-- COMPRA -->
     <section id="tab-compra" class="hidden">
+      <div class="add-row">
+        <input id="add-item" class="field" type="text" placeholder="Añadir producto a la lista" autocomplete="off">
+        <button id="btn-add-item" class="btn" type="button" aria-label="Añadir producto">+</button>
+      </div>
       <div class="toolbar">
         <button id="btn-copy" class="btn" type="button">Copiar lista</button>
         <button id="btn-uncheck" class="btn ghost" type="button">Desmarcar todo</button>
@@ -78,6 +84,7 @@
 
   <div id="toast" class="toast" role="status"></div>
 
+<script src="planner.js"></script>
 <script src="comidas.js"></script>
 <script src="../../pwa.js"></script>
 </body>
