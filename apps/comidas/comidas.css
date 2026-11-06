@@ -1,18 +1,17 @@
-/* Tema de Mi-Menu: negro y amarillo vivo.
-   Claro: lienzo amarillo con negro. Oscuro: negro con amarillo. */
+/* Tema de Mi-Menu: amarillo vivo con blanco (claro) o con negro (oscuro). */
 :root {
-  --bg: #ffd60a;
-  --surface: #ffe673;
-  --surface-2: #f2c400;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f2f2f2;
   --ink: #0a0a0a;
-  --ink-2: #3b3300;
-  --ink-3: #6d5f00;
-  --line: rgba(10, 10, 10, .22);
-  --btn-bg: #0a0a0a;
-  --btn-ink: #ffd60a;
-  --accent: #0a0a0a;
-  --accent-soft: #ffc800;
-  --shadow: 0 1px 2px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.14);
+  --ink-2: #4a4a4a;
+  --ink-3: #8a8a8a;
+  --line: #e4e4e4;
+  --btn-bg: #ffd60a;
+  --btn-ink: #0a0a0a;
+  --accent: #ffd60a;
+  --accent-soft: #fff3b0;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.08);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
