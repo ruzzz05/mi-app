@@ -85,6 +85,36 @@
       // "Hoy" se refresca solo cuando cambia la hora
       setInterval(() => { if (current === 'hoy' && !C.sheetOpen()) C.render(); }, 60000);
 
+      // Diagnóstico de pantalla: 5 toques seguidos en el título "Mi-Menu" muestran/ocultan las medidas
+      const title = document.querySelector('.topbar .title');
+      let taps = [];
+      if (title) title.addEventListener('click', () => {
+        const now = Date.now();
+        taps = taps.filter(t => now - t < 2000).concat(now);
+        if (taps.length < 5) return;
+        taps = [];
+        let box = $('diag');
+        if (box) { box.remove(); return; }
+        box = document.createElement('pre');
+        box.id = 'diag';
+        box.style.cssText = 'position:fixed;left:8px;right:8px;top:70px;z-index:300;margin:0;padding:10px;font:11px/1.4 monospace;background:#000;color:#0f0;border-radius:8px;white-space:pre-wrap';
+        const probe = document.createElement('div');
+        probe.style.cssText = 'position:fixed;visibility:hidden;padding-bottom:env(safe-area-inset-bottom);padding-top:env(safe-area-inset-top)';
+        document.body.appendChild(probe);
+        const cs = getComputedStyle(probe);
+        const bar = document.querySelector('.tabbar').getBoundingClientRect();
+        box.textContent = [
+          'innerHeight ' + innerHeight + '  screen.height ' + screen.height,
+          'visualViewport ' + (window.visualViewport ? Math.round(window.visualViewport.height) : '-'),
+          'safe-area top ' + cs.paddingTop + '  bottom ' + cs.paddingBottom,
+          'standalone ' + (navigator.standalone === true),
+          'tabbar bottom ' + Math.round(bar.bottom) + '  alto ' + Math.round(bar.height),
+          'hueco bajo la barra ' + Math.round(innerHeight - bar.bottom) + 'px'
+        ].join('\n');
+        probe.remove();
+        document.body.appendChild(box);
+      });
+
       const s = C.state;
       // Antes de sobrescribir con el estado migrado, guarda una copia del anterior (una sola vez)
       try {

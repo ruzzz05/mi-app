@@ -298,8 +298,9 @@ textarea.field { min-height: 120px; padding: 12px 16px; resize: vertical; line-h
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
-  /* Margen bajo los iconos: solo parte del de seguridad del iPhone, para que no parezca flotar */
-  padding: 6px 8px max(8px, calc(env(safe-area-inset-bottom) - 14px));
+  /* Margen bajo los iconos mínimo: la barra queda pegada abajo (el indicador de inicio del
+     iPhone es una raya fina que se superpone sin tapar los iconos) */
+  padding: 4px 8px max(2px, calc(env(safe-area-inset-bottom) - 28px));
   background: var(--bg);
   border-top: 1px solid var(--line);
 }
@@ -312,7 +313,7 @@ textarea.field { min-height: 120px; padding: 12px 16px; resize: vertical; line-h
   align-items: center;
   justify-content: center;
   gap: 3px;
-  min-height: 54px;
+  min-height: 50px;
   border-radius: 14px;
   color: var(--ink-3);
   font: 600 11px var(--sans);
