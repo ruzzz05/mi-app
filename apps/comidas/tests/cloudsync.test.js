@@ -66,3 +66,32 @@ test('deserializeRemote respeta los acentos y simbolos de los nombres', () => {
   s.dishes[0].name = 'Crema de calabacín & "queso" ñ';
   assert.eq(Planner.deserializeRemote(Planner.serializeState({ ...s, updatedAt: 1 }, 1)).dishes[0].name, 'Crema de calabacín & "queso" ñ');
 });
+
+// ---- Formato de Firestore (API REST) ----
+test('toFirestoreFields convierte la copia al formato de Firestore', () => {
+  assert.eq(Planner.toFirestoreFields({ updatedAt: 1700000000123, json: '{"a":1}' }), {
+    fields: { updatedAt: { integerValue: '1700000000123' }, json: { stringValue: '{"a":1}' } }
+  });
+});
+
+test('fromFirestoreDoc lee un documento de Firestore', () => {
+  const doc = { name: 'projects/p/databases/(default)/documents/users/u', fields: { updatedAt: { integerValue: '1700000000123' }, json: { stringValue: '{"a":1}' } } };
+  assert.eq(Planner.fromFirestoreDoc(doc), { updatedAt: 1700000000123, json: '{"a":1}' });
+});
+
+test('fromFirestoreDoc devuelve null si falta el documento o algun campo', () => {
+  assert.eq(Planner.fromFirestoreDoc(null), null);
+  assert.eq(Planner.fromFirestoreDoc({}), null);
+  assert.eq(Planner.fromFirestoreDoc({ fields: { updatedAt: { integerValue: '5' } } }), null);
+  assert.eq(Planner.fromFirestoreDoc({ fields: { json: { stringValue: '{}' } } }), null);
+});
+
+test('fromFirestoreDoc rechaza una marca de tiempo que no es un numero', () => {
+  assert.eq(Planner.fromFirestoreDoc({ fields: { updatedAt: { integerValue: 'abc' }, json: { stringValue: '{}' } } }), null);
+});
+
+test('ida y vuelta por el formato de Firestore conserva acentos y comillas', () => {
+  const s = withData(); s.dishes[0].name = 'Crema de calabacín & "queso" ñ';
+  const sent = Planner.serializeState({ ...s, updatedAt: 42 }, 1);
+  assert.eq(Planner.deserializeRemote(Planner.fromFirestoreDoc(JSON.parse(JSON.stringify(Planner.toFirestoreFields(sent))))).dishes[0].name, 'Crema de calabacín & "queso" ñ');
+});

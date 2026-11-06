@@ -37,7 +37,20 @@
     return 'none';
   }
 
-  const api = { isEmptyState, serializeState, deserializeRemote, decideSync };
+  // Traducción al formato de la API REST de Firestore (y de vuelta).
+  function toFirestoreFields(data) {
+    return { fields: { updatedAt: { integerValue: String(data.updatedAt) }, json: { stringValue: data.json } } };
+  }
+
+  function fromFirestoreDoc(doc) {
+    const f = doc && doc.fields;
+    if (!f || !f.updatedAt || !f.json) return null;
+    const updatedAt = Number(f.updatedAt.integerValue);
+    if (!Number.isFinite(updatedAt) || typeof f.json.stringValue !== 'string') return null;
+    return { updatedAt, json: f.json.stringValue };
+  }
+
+  const api = { isEmptyState, serializeState, deserializeRemote, decideSync, toFirestoreFields, fromFirestoreDoc };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Planner = Object.assign(root.Planner || {}, api);
 })(typeof window !== 'undefined' ? window : globalThis);
