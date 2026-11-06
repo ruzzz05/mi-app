@@ -199,7 +199,8 @@ body {
 .buy-text { display: flex; flex-direction: column; min-width: 0; }
 .buy-text small { font-size: 12px; color: var(--ink-3); }
 .removed { margin-top: 20px; }
-.removed summary { cursor: pointer; color: var(--ink-2); font-weight: 600; padding: 8px 0; }
+.bought { margin-bottom: 14px; }
+.bought summary, .removed summary { cursor: pointer; color: var(--ink-2); font-weight: 600; padding: 8px 0; }
 .buy input { width: 22px; height: 22px; accent-color: var(--btn-bg); flex: none; }
 .buy .qty { margin-left: auto; font-weight: 700; color: var(--ink-2); }
 .buy.done .buy-name { text-decoration: line-through; color: var(--ink-3); }
@@ -355,8 +356,17 @@ textarea.field { min-height: 120px; padding: 12px 16px; resize: vertical; line-h
 .ing-list { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
 .ing-list li { padding: 6px 12px; color: var(--btn-ink); background: color-mix(in srgb, var(--btn-ink) 16%, transparent); border-radius: 999px; font-size: 14px; font-weight: 600; }
 .ing-list li span { color: var(--btn-ink); opacity: .75; font-weight: 700; }
-.card-row.static { cursor: default; }
-.card-row.static:active { background: var(--surface); }
 
 /* Compra */
 .qty-in { width: 76px; flex: none; text-align: center; padding: 0 8px; }
+
+/* Hoy: lo que viene después, en tono discreto */
+.next-title { margin: 22px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); }
+.next-row {
+  display: flex; align-items: baseline; gap: 14px;
+  padding: 12px 16px; margin-bottom: 8px;
+  background: var(--surface-2); border-radius: 12px;
+  color: var(--ink-2);
+}
+.next-when { flex: none; width: 136px; white-space: nowrap; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.next-name { font-weight: 500; }

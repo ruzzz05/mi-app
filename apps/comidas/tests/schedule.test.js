@@ -35,28 +35,47 @@ test('toISODate usa la fecha local con ceros', () => {
   assert.eq(Planner.toISODate(new Date(2026, 0, 5, 23, 59)), '2026-01-05');
 });
 
-test('todayView el primer dia a mediodia: dia 1, toca la comida y la cena queda debajo', () => {
+const brief = v => v.upcoming.map(u => `${u.dayOffset}:${u.meal}:${u.entry ? u.entry.id : null}`);
+
+test('todayView el primer dia a mediodia: dia 1, toca la comida y despues la cena de hoy', () => {
   const v = Planner.todayView({ menu: menuFrom('2026-11-06', 3), now: at(6, 12) });
   assert.eq([v.status, v.dayNumber, v.totalDays, v.meal], ['active', 1, 3, 'comida']);
   assert.eq(v.current.id, '0-comida');
-  assert.eq([v.other.meal, v.other.entry.id], ['cena', '0-cena']);
+  assert.eq(brief(v), ['0:cena:0-cena']);
   assert.eq(v.date, '2026-11-06');
 });
 
-test('todayView por la tarde toca la cena y la comida sale como la otra', () => {
+test('todayView por la tarde toca la cena y lo siguiente es el dia de manana', () => {
   const v = Planner.todayView({ menu: menuFrom('2026-11-06', 3), now: at(6, 20) });
-  assert.eq([v.meal, v.current.id, v.other.meal], ['cena', '0-cena', 'comida']);
+  assert.eq([v.meal, v.current.id], ['cena', '0-cena']);
+  assert.eq(brief(v), ['1:comida:1-comida', '1:cena:1-cena']);
+});
+
+test('todayView el ultimo dia por la tarde no tiene nada siguiente', () => {
+  const v = Planner.todayView({ menu: menuFrom('2026-11-06', 3), now: at(8, 20) });
+  assert.eq([v.dayNumber, v.meal, v.upcoming], [3, 'cena', []]);
+});
+
+test('todayView el ultimo dia a mediodia solo deja la cena de hoy', () => {
+  assert.eq(brief(Planner.todayView({ menu: menuFrom('2026-11-06', 3), now: at(8, 12) })), ['0:cena:2-cena']);
+});
+
+test('todayView con un hueco vacio en lo siguiente lo incluye con entry null', () => {
+  const menu = menuFrom('2026-11-06', 3);
+  delete menu.plan['1-comida'];
+  assert.eq(brief(Planner.todayView({ menu, now: at(6, 20) })), ['1:comida:null', '1:cena:1-cena']);
 });
 
 test('todayView de un menu que empieza por la cena muestra la cena aunque sea por la manana', () => {
   const v = Planner.todayView({ menu: menuFrom('2026-11-06', 3, 'cena'), now: at(6, 10) });
   assert.eq([v.status, v.dayNumber, v.meal, v.current.id], ['active', 1, 'cena', '0-cena']);
-  assert.eq(v.other, null);
+  assert.eq(brief(v), ['1:comida:1-comida', '1:cena:1-cena']);
 });
 
 test('todayView de un menu que empieza por la cena, a las 18:00, no muestra la comida que no existe', () => {
   const v = Planner.todayView({ menu: menuFrom('2026-11-06', 3, 'cena'), now: at(6, 18) });
-  assert.eq([v.meal, v.current.id, v.other], ['cena', '0-cena', null]);
+  assert.eq([v.meal, v.current.id], ['cena', '0-cena']);
+  assert.eq(brief(v), ['1:comida:1-comida', '1:cena:1-cena']);
 });
 
 test('todayView avanza el dia con la fecha y termina despues del ultimo dia', () => {

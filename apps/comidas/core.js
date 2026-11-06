@@ -90,6 +90,8 @@
       try {
         const raw = localStorage.getItem(KEY);
         if (raw && !localStorage.getItem(KEY + '.bak')) localStorage.setItem(KEY + '.bak', raw);
+        // Copia previa a la limpieza de recetas de ejemplo (solo la primera vez)
+        if (raw && !JSON.parse(raw).seedPurged) localStorage.setItem(KEY + '.pre-limpieza', raw);
       } catch (e) { /* sin almacenamiento */ }
       C.save();
       C.go(!s.dishes.length ? 'recetas' : (s.menu ? 'hoy' : 'menu'));

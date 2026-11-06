@@ -25,6 +25,18 @@
     return { date: toISODate(tomorrow), firstMeal: 'comida' };
   }
 
+  // Comidas que vienen después de la actual: las que quedan hoy o, si no queda ninguna,
+  // las del día siguiente. Cada una: { dayOffset, meal, entry } (entry null si no tiene plato).
+  function upcomingMeals(menu, dayIdx, meal) {
+    const keys = R.slotKeys(menu);
+    const at = keys.indexOf(R.slotKey(dayIdx, meal));
+    if (at < 0) return [];
+    const rest = keys.slice(at + 1).map(k => { const [d, m] = k.split('-'); return { key: k, day: parseInt(d, 10), meal: m }; });
+    const today = rest.filter(x => x.day === dayIdx);
+    const chosen = today.length ? today : rest.filter(x => x.day === dayIdx + 1);
+    return chosen.map(x => ({ dayOffset: x.day - dayIdx, meal: x.meal, entry: menu.plan[x.key] || null }));
+  }
+
   // Qué toca ahora según el menú: { status: 'none'|'notStarted'|'active'|'finished', ... }
   function todayView({ menu, now }) {
     if (!menu) return { status: 'none' };
@@ -32,21 +44,18 @@
     const dayIdx = daysBetween(menu.startDate, today);
     const base = { startDate: menu.startDate, totalDays: menu.days, date: today };
 
-    if (dayIdx < 0) return { ...base, status: 'notStarted', current: null, other: null };
-    if (dayIdx >= menu.days) return { ...base, status: 'finished', current: null, other: null };
+    if (dayIdx < 0) return { ...base, status: 'notStarted', current: null, upcoming: [] };
+    if (dayIdx >= menu.days) return { ...base, status: 'finished', current: null, upcoming: [] };
 
     const firstDayDinnerOnly = dayIdx === 0 && menu.firstMeal === 'cena';
     const meal = firstDayDinnerOnly ? 'cena' : mealNow(now);
-    const otherMeal = meal === 'comida' ? 'cena' : 'comida';
     return {
       ...base,
       status: 'active',
       dayNumber: dayIdx + 1,
       meal,
       current: menu.plan[R.slotKey(dayIdx, meal)] || null,
-      other: (dayIdx === 0 && menu.firstMeal === 'cena' && otherMeal === 'comida')
-        ? null // ese día el menú no tiene comida
-        : { meal: otherMeal, entry: menu.plan[R.slotKey(dayIdx, otherMeal)] || null }
+      upcoming: upcomingMeals(menu, dayIdx, meal)
     };
   }
 

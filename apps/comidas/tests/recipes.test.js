@@ -55,7 +55,7 @@ test('mainIngredient es el de mayor cantidad y no hay principal si empatan', () 
 // =========================================================
 test('migrateState sin datos devuelve un estado vacio', () => {
   assert.eq(Planner.migrateState(null), {
-    dishes: [], draft: null, menu: null, list: { removed: [], extras: [], checked: {} }
+    dishes: [], draft: null, menu: null, list: { removed: [], extras: [], checked: {} }, seedPurged: true
   });
 });
 
@@ -72,6 +72,68 @@ test('migrateState normaliza platos antiguos, descarta el plan y conserva lo mar
 });
 
 test('migrateState conserva un estado ya nuevo sin cambios', () => {
-  const state = { dishes: [dish('a', ['x'])], draft: null, menu: { days: 2 }, list: { removed: ['x'], extras: [], checked: {} } };
+  const state = { dishes: [dish('a', ['x'])], draft: null, menu: { days: 2 }, list: { removed: ['x'], extras: [], checked: {} }, seedPurged: true };
   assert.eq(Planner.migrateState(JSON.parse(JSON.stringify(state))), state);
+});
+
+// =========================================================
+// Limpieza (una sola vez) de las recetas de ejemplo antiguas
+// =========================================================
+const stored = (dishes, extra = {}) => ({ dishes, draft: null, menu: null, ...extra });
+
+test('migrateState elimina una receta de ejemplo antigua sin modificar', () => {
+  const s = Planner.migrateState(stored([
+    { id: 'r', name: 'Ramen', ingredients: [] },
+    { id: 'e', name: 'Ensalada de Pasta', ingredients: [{ name: 'lechuga', qty: 1 }, { name: 'atun', qty: 1 }, { name: 'cebolla morada', qty: 1 }, { name: 'huevo', qty: 1 }, { name: 'tomate', qty: 1 }] }
+  ]));
+  assert.eq(s.dishes, []);
+  assert.eq(s.seedPurged, true);
+});
+
+test('migrateState reconoce tambien los ejemplos de la primera version y los de texto', () => {
+  const s = Planner.migrateState(stored([
+    { id: 'l', name: ' lentejas ', ingredients: ['lentejas', 'zanahoria', 'cebolla', 'chorizo'] },
+    { id: 's', name: 'Salmón a la plancha', ingredients: ['salmón', 'limón', 'ensalada'] }
+  ]));
+  assert.eq(s.dishes, []);
+});
+
+test('migrateState conserva una receta de ejemplo que el usuario ha editado', () => {
+  const s = Planner.migrateState(stored([
+    { id: 'r', name: 'Ramen', ingredients: [{ name: 'fideos', qty: 2 }] },
+    { id: 'p', name: 'Pasta con Atun', ingredients: [{ name: 'pasta', qty: 3 }] }
+  ]));
+  assert.eq(s.dishes.map(d => d.id), ['r', 'p']);
+});
+
+test('migrateState conserva las recetas propias aunque haya ejemplos mezclados', () => {
+  const s = Planner.migrateState(stored([
+    { id: 'r', name: 'Ramen', ingredients: [] },
+    { id: 'm', name: 'Mi tortilla', ingredients: [{ name: 'huevos', qty: 3 }] }
+  ]));
+  assert.eq(s.dishes.map(d => d.id), ['m']);
+});
+
+test('migrateState solo limpia una vez: despues una receta llamada Ramen se respeta', () => {
+  const s = Planner.migrateState(stored([{ id: 'r', name: 'Ramen', ingredients: [] }], { seedPurged: true }));
+  assert.eq(s.dishes.map(d => d.id), ['r']);
+});
+
+test('migrateState deja como texto libre los huecos del menu que usaban una receta eliminada', () => {
+  const plan = { '0-comida': { id: 'r', name: 'Ramen' }, '0-cena': { id: 'm', name: 'Mi tortilla' } };
+  const s = Planner.migrateState(stored(
+    [{ id: 'r', name: 'Ramen', ingredients: [] }, { id: 'm', name: 'Mi tortilla', ingredients: [{ name: 'huevos', qty: 3 }] }],
+    { menu: { startDate: '2026-11-06', firstMeal: 'comida', days: 1, exclusions: [], plan } }
+  ));
+  assert.eq(s.menu.plan['0-comida'], { id: null, name: 'Ramen' });
+  assert.eq(s.menu.plan['0-cena'], { id: 'm', name: 'Mi tortilla' });
+});
+
+test('migrateState hace lo mismo con el borrador y quita exclusiones de recetas eliminadas', () => {
+  const s = Planner.migrateState(stored(
+    [{ id: 'r', name: 'Ramen', ingredients: [] }],
+    { draft: { startDate: '2026-11-06', firstMeal: 'comida', days: 1, exclusions: [{ scope: 'menu', dishId: 'r' }], plan: { '0-comida': { id: 'r', name: 'Ramen' } } } }
+  ));
+  assert.eq(s.draft.plan['0-comida'], { id: null, name: 'Ramen' });
+  assert.eq(s.draft.exclusions, []);
 });

@@ -49,9 +49,11 @@
           <strong>${cur ? esc(cur.name) : 'Sin plato para esta comida'}</strong>
           ${ingredientsHtml(cur)}
         </div>
-        ${v.other ? `<div class="card-row static">
-          <span>${LABEL[v.other.meal]} de hoy<small>${v.other.entry ? esc(v.other.entry.name) : 'Sin plato'}</small></span>
-        </div>` : ''}`;
+        ${v.upcoming.length ? `<p class="next-title">Después</p>${v.upcoming.map(u => `
+          <div class="next-row">
+            <span class="next-when">${u.dayOffset === 0 ? 'Hoy' : 'Mañana'} · ${LABEL[u.meal]}</span>
+            <span class="next-name">${u.entry ? esc(u.entry.name) : 'Sin plato'}</span>
+          </div>`).join('')}` : ''}`;
     }
   }
 

@@ -44,14 +44,58 @@
     return top.length === 1 ? top[0].key : null;
   }
 
-  // Lleva cualquier estado guardado (o ninguno) a la forma actual.
+  // Recetas de ejemplo que cargaron versiones antiguas de la app. Solo sirven para limpiarlas
+  // (una vez) de los datos ya guardados; la app ya no trae ninguna receta de serie.
+  const OLD_EXAMPLES = [
+    ['Sopa con Tiburones', []], ['Arroz con pollo', []],
+    ['Ensalada de Pasta', ['lechuga', 'atun', 'cebolla morada', 'huevo', 'tomate']],
+    ['Fajitas Pollo con Arroz', []], ['Ensalada de Garbanzo', ['atun', 'cebolla', 'tomate']],
+    ['Pasta con Atun', []], ['Ramen', []], ['Pure de Patatas con Pavo', []],
+    ['Pure de calabaza con picatostes', []], ['Bocata de Pollo con Lechuga y tomate', []],
+    ['Sopa de garbanzos con Arroz', []], ['Pasta con Pollo', []], ['Tosta de Huevo con Complemento', []],
+    ['Ensalada Campera', ['patata', 'huevo', 'atun', 'cebolla']], ['Cazuela de Patatas', ['Caldo de Paella']],
+    ['Lentejas', ['lentejas', 'zanahoria', 'cebolla', 'chorizo']],
+    ['Pasta con tomate', ['pasta', 'tomate triturado', 'cebolla', 'queso rallado']],
+    ['Tortilla de patatas', ['huevos', 'patatas', 'cebolla']], ['Pollo al horno', ['pollo', 'patatas', 'limón']],
+    ['Ensalada mixta', ['lechuga', 'tomate', 'atún', 'aceitunas']],
+    ['Arroz con verduras', ['arroz', 'pimiento', 'zanahoria', 'guisantes']],
+    ['Salmón a la plancha', ['salmón', 'limón', 'ensalada']], ['Salmón a la plancha', ['salmón', 'limón', 'lechuga']],
+    ['Crema de calabacín', ['calabacín', 'patata', 'cebolla', 'queso crema']]
+  ];
+  const fingerprint = (name, names) => norm(name) + '|' + names.map(norm).sort().join(',');
+  const EXAMPLE_PRINTS = new Set(OLD_EXAMPLES.map(([n, i]) => fingerprint(n, i)));
+
+  // Es una receta de ejemplo sin tocar: mismo nombre, mismos ingredientes y todos con cantidad 1.
+  function isOldExample(dish) {
+    const list = ingredientsOf(dish);
+    return list.every(i => i.qty === 1) && EXAMPLE_PRINTS.has(fingerprint(dish.name, list.map(i => i.name)));
+  }
+
+  // Lleva cualquier estado guardado (o ninguno) a la forma actual. Una sola vez (seedPurged)
+  // elimina las recetas de ejemplo antiguas que no se hayan editado; los huecos del menú que las
+  // usaban se quedan como texto libre para no perder lo planificado.
   function migrateState(raw) {
     const s = raw || {};
+    const purged = new Set();
+    let dishes = (s.dishes || []).map(normalizeDish);
+    if (raw && !s.seedPurged) {
+      dishes = dishes.filter(d => { if (isOldExample(d)) { purged.add(d.id); return false; } return true; });
+    }
+    const clean = menu => {
+      if (!menu || !purged.size) return menu || null;
+      const plan = {};
+      Object.keys(menu.plan || {}).forEach(k => {
+        const e = menu.plan[k];
+        plan[k] = purged.has(e.id) ? { id: null, name: e.name } : e;
+      });
+      return { ...menu, plan, exclusions: (menu.exclusions || []).filter(ex => !purged.has(ex.dishId)) };
+    };
     return {
-      dishes: (s.dishes || []).map(normalizeDish),
-      draft: s.draft || null,
-      menu: s.menu || null,
-      list: s.list || { ...emptyList(), checked: s.checked || {} }
+      dishes,
+      draft: clean(s.draft),
+      menu: clean(s.menu),
+      list: s.list || { ...emptyList(), checked: s.checked || {} },
+      seedPurged: true
     };
   }
 

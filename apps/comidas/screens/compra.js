@@ -6,12 +6,13 @@
 
   const items = () => P.buildShoppingList({ dishes: C.state.dishes, menu: C.state.menu, list: C.state.list });
   const setList = list => { C.state.list = list; C.save(); C.render(); };
+  let boughtOpen = false; // el bloque "Comprados" recuerda si estaba desplegado
 
   function render(el) {
     const all = items();
     const removed = C.state.list.removed;
 
-    const rows = all.map(it => `
+    const rowHtml = it => `
       <div class="buy ${it.checked ? 'done' : ''}">
         <label class="buy-main">
           <input type="checkbox" data-check="${esc(it.key)}" ${it.checked ? 'checked' : ''}>
@@ -24,7 +25,9 @@
         <button class="icon-btn" type="button" data-remove="${esc(it.key)}" aria-label="Quitar ${esc(it.name)}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
         </button>
-      </div>`).join('');
+      </div>`;
+    const rows = all.filter(it => !it.checked).map(rowHtml).join('');
+    const bought = all.filter(it => it.checked);
 
     el.innerHTML = `
       <div class="screen-head"><h2>Compra</h2></div>
@@ -38,7 +41,9 @@
         <button class="btn" type="button" data-act="copy">Copiar lista</button>
         <button class="btn ghost" type="button" data-act="uncheck">Desmarcar todo</button>
       </div>
-      ${rows || '<p class="empty-msg">La lista está vacía.</p>'}
+      ${bought.length ? `<details class="bought" ${boughtOpen ? 'open' : ''}><summary>Comprados (${bought.length})</summary>
+        ${bought.map(rowHtml).join('')}</details>` : ''}
+      ${rows || `<p class="empty-msg">${bought.length ? 'Todo comprado.' : 'La lista está vacía.'}</p>`}
       ${removed.length ? `<details class="removed"><summary>Quitados (${removed.length})</summary>
         ${removed.map(k => `<button class="card-row" type="button" data-restore="${esc(k)}">${esc(k)}<small>Volver a poner</small></button>`).join('')}
       </details>` : ''}`;
@@ -52,6 +57,8 @@
       setList(P.addToList(C.state.list, name, qty));
       $('add-name').focus();
     };
+    const dt = el.querySelector('details.bought');
+    if (dt) dt.addEventListener('toggle', () => { boughtOpen = dt.open; });
     $('add-btn').onclick = add;
     $('add-name').onkeydown = e => { if (e.key === 'Enter') add(); };
 
