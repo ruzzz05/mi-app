@@ -123,15 +123,15 @@ Vinilos enseña una pared de portadas (3 por fila). Los 56 discos del archivo `a
   2. Pégalo en `apps/vinilos/vinilos-config.js` (`ownerUid: '...'`). Solo decide si se enseña el botón.
   3. Pégalo también en las reglas de Firestore, en lugar de `PEGA_AQUI_TU_UID` (el bloque de reglas de la sección anterior, "Datos del Gimnasio", que son las reglas completas de la app). **Esto es lo que impide de verdad que otra persona escriba**. Publica las reglas.
 
-### Gimnasio: pasos y calorías (Google Health)
+### Gimnasio: pasos, calorías y recuperación (Google Health)
 
-La pantalla **Hoy** del Gimnasio muestra los pasos y calorías de tu pulsera Google Fitbit Air a través de la Google Health API. Es un experimento sin servidor: el navegador pide un permiso a Google (dura ~1 h) y consulta la API con él. Para activarlo hay que crear el acceso en Google Cloud **una sola vez**:
+La pantalla **Hoy** del Gimnasio muestra los pasos y calorías de tu pulsera Google Fitbit Air a través de la Google Health API. Además calcula una **recuperación diaria** (estilo Bevel) con tu sueño, tu pulso en reposo y tu variabilidad del pulso (VFC), y en **Perfil** enseña la evolución de los últimos 14 días. Los datos de salud se guardan solo en el móvil; no se suben a Firebase. La puntuación es orientativa (sueño 35 %, VFC 40 %, pulso en reposo 25 %, comparando con tu media de los 14 días anteriores) y no es un dato médico. Es un experimento sin servidor: el navegador pide un permiso a Google (dura ~1 h) y consulta la API con él. Para activarlo hay que crear el acceso en Google Cloud **una sola vez**:
 
 1. Entra en [Google Cloud Console](https://console.cloud.google.com/) y elige el proyecto de Firebase (`mi-app-490b5`) o crea uno.
 2. **APIs y servicios → Biblioteca**: busca **Google Health API** y pulsa *Habilitar*.
-3. **Google Auth Platform** (pantalla de consentimiento): tipo *Externo*, pon un nombre y tu correo; en *Público* deja el estado **En pruebas** y añade tu cuenta de Google (la de la pulsera) como **usuario de prueba**; en *Acceso a los datos* añade el permiso `https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly`.
+3. **Google Auth Platform** (pantalla de consentimiento): tipo *Externo*, pon un nombre y tu correo; en *Público* deja el estado **En pruebas** y añade tu cuenta de Google (la de la pulsera) como **usuario de prueba**; en *Acceso a los datos* añade los tres permisos `https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly` (pasos y calorías), `https://www.googleapis.com/auth/googlehealth.sleep.readonly` (sueño) y `https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly` (pulso en reposo y VFC).
 4. **Clientes → Crear cliente → Aplicación web**. En *Orígenes autorizados de JavaScript* pon `https://ruzzz05.github.io`. Copia el **ID de cliente**.
-5. Pégalo en `apps/gimnasio/google-config.js` (`clientId: '...'`), sube el cambio y abre Hoy → **Conectar con Google**. Google avisará de que la app no está verificada: *Avanzado → Continuar*.
+5. Pégalo en `apps/gimnasio/google-config.js` (`clientId: '...'`), sube el cambio y abre Hoy → **Conectar con Google**. Google avisará de que la app no está verificada: *Avanzado → Continuar*. **Deja marcadas todas las casillas de permisos**: si desmarcas alguna, Hoy lo dirá y ofrecerá "Ampliar permisos". Si ya estabas conectado antes de que existieran los permisos de sueño y salud, pulsa **Ampliar permisos** una vez.
 
 El ID de cliente no es un secreto. Mientras la app de Google Cloud esté "En pruebas", el permiso **caduca** (calculo que cada ~7 días): la pantalla lo dirá y bastará pulsar *Volver a conectar*. Si el inicio de sesión de Google no funciona dentro de la app instalada en el iPhone, la alternativa es una función en la nube de Firebase (requiere activar la facturación).
 

@@ -1,4 +1,4 @@
-// Hoy: pasos y calorías de la pulsera (Google Health) y cómo va el entreno de hoy.
+// Hoy: cómo estás hoy (recuperación con los datos de la pulsera), el entreno de hoy y los pasos y calorías.
 (() => {
   const A = window.GymApp;
   const G = window.Gym;
@@ -10,6 +10,8 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   };
   const hhmm = ms => new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const hm = min => `${Math.floor(min / 60)} h ${String(Math.round(min % 60)).padStart(2, '0')} min`;
+  const SCOPE_NAMES = { sleep: 'sueño', metrics: 'pulso y variabilidad' };
 
   // ---------- Entreno de hoy ----------
   function workoutCard() {
@@ -30,9 +32,53 @@
       h('small', null, `${t.sets} series · ${t.durationSec ? min + ' min · ' : ''}${Math.round(t.volume).toLocaleString('es-ES')} kg de volumen`));
   }
 
-  // ---------- Salud ----------
-  function healthCard() {
-    const st = A.health.state();
+  // ---------- Recuperación ----------
+  function recoveryCard(st) {
+    if (st.kind === 'sin-config' || st.kind === 'sin-conectar' || st.kind === 'caducado') return null;
+
+    const needSleep = st.missing.includes(A.health.SCOPES[1]), needMetrics = st.missing.includes(A.health.SCOPES[2]);
+    const lack = [needSleep ? SCOPE_NAMES.sleep : null, needMetrics ? SCOPE_NAMES.metrics : null].filter(Boolean);
+    const permiso = lack.length ? h('div', { class: 'routine' },
+      h('h3', null, 'Faltan permisos para la recuperación'),
+      h('small', null, `Google aún no te ha dado acceso a: ${lack.join(' y ')}. Pulsa para ampliarlos (y deja marcadas todas las casillas).`),
+      h('div', { class: 'routine-actions' }, h('button', { class: 'btn small', type: 'button', onclick: () => A.health.connect() }, 'Ampliar permisos'))) : null;
+
+    const rec = A.health.recovery();
+    const failed = Object.entries(st.healthErrors || {}).map(([k, m]) => `${{ sleep: 'sueño', rhr: 'pulso', hrv: 'VFC', steps: 'pasos' }[k] || k}: ${m}`);
+    const errors = failed.length ? h('p', { class: 'hint err' }, 'No se pudo leer ' + failed.join(' · ')) : null;
+
+    if (!rec) {
+      return h('div', null, permiso,
+        h('div', { class: 'routine' }, h('h3', null, 'Recuperación'),
+          h('small', null, st.kind === 'cargando' ? 'Calculando…' : 'Todavía no hay datos de esta noche. Duerme con la pulsera puesta y abre la app por la mañana.')),
+        errors);
+    }
+
+    const parts = [];
+    parts.push(h('div', { class: 'rec-line' }, h('span', null, 'Sueño'),
+      h('b', null, rec.night ? hm(rec.night.minutesAsleep) : 'sin datos de esta noche')));
+    parts.push(h('div', { class: 'rec-line' }, h('span', null, 'Pulso en reposo'),
+      h('b', null, rec.rhr ? `${fmt(rec.rhr.value)} lpm` : '—'),
+      rec.rhrBase ? h('small', null, `tu media ${fmt(rec.rhrBase.mean)}`) : null));
+    parts.push(h('div', { class: 'rec-line' }, h('span', null, 'VFC'),
+      h('b', null, rec.hrv ? `${fmt(rec.hrv.value)} ms` : '—'),
+      rec.hrvBase ? h('small', null, `tu media ${fmt(rec.hrvBase.mean)}`) : null));
+
+    const s = rec.score;
+    return h('div', null, permiso,
+      h('div', { class: 'recovery' + (s ? '' : ' empty') },
+        h('div', { class: 'rec-head' },
+          h('div', { class: 'rec-score' }, s ? s.score : '—', h('small', null, ' / 100')),
+          h('div', { class: 'rec-label' }, h('b', null, s ? s.label : 'Sin puntuación'),
+            s && s.provisional ? h('small', null, 'Provisional: faltan días para tu referencia personal (pulso y VFC).') : null)),
+        s ? h('div', { class: 'bar' }, h('i', { class: 'bar-now', style: `width:${s.score}%` })) : null,
+        parts),
+      errors,
+      h('p', { class: 'hint' }, 'Orientativo: calculado con tus datos, no es un dato médico.'));
+  }
+
+  // ---------- Pasos y calorías ----------
+  function healthCard(st) {
     const head = h('p', { class: 'eyebrow' }, 'Pasos y calorías de hoy');
 
     if (st.kind === 'sin-config') {
@@ -69,13 +115,15 @@
 
   A.register('hoy', {
     render(el) {
+      const st = A.health.state();
       A.mount(el,
         h('div', { class: 'screen-head' }, h('h2', null, 'Hoy')),
         h('p', { class: 'sub' }, longDate()),
+        recoveryCard(st),
         workoutCard(),
-        healthCard());
+        healthCard(st));
       A.health.preload();
-      A.health.refresh(); // solo consulta si hay permiso vigente y los datos tienen más de 10 minutos
+      A.health.refresh(); // solo consulta si hay permiso vigente y los datos están caducados
     }
   });
 })();

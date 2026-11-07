@@ -117,7 +117,7 @@
 
     // Borra los datos guardados en este móvil (los usa cloud.js cuando entra otra cuenta)
     clearLocal() {
-      ['gimnasio.v1', 'gimnasio.active', 'gimnasio.hoy', 'gimnasio.google.token', 'gimnasio.google.connected'].forEach(k => {
+      ['gimnasio.v1', 'gimnasio.active', 'gimnasio.hoy', 'gimnasio.salud', 'gimnasio.google.token', 'gimnasio.google.connected'].forEach(k => {
         try { localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ }
       });
       App.adoptState(emptyState());

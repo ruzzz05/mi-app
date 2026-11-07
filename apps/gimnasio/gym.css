@@ -327,3 +327,15 @@ body {
 
 .hint.err { color: #c0392b; }
 .toolbar .hint { margin: 0; align-self: center; flex: 1; }
+
+/* Recuperación (Hoy) */
+.recovery { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+.rec-head { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+.rec-score { flex: none; white-space: nowrap; font-family: var(--serif); font-weight: 800; font-size: 54px; line-height: 1; color: var(--accent); }
+.rec-score small { font-size: 16px; font-weight: 600; color: var(--ink-3); }
+.rec-label { min-width: 0; }
+.rec-label b { display: block; font-size: 17px; }
+.rec-label small { display: block; margin-top: 3px; color: var(--ink-3); font-size: 12px; line-height: 1.3; }
+.rec-line { display: flex; align-items: baseline; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.rec-line span { flex: 1; color: var(--ink-2); }
+.rec-line small { color: var(--ink-3); font-size: 12px; }

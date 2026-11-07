@@ -127,6 +127,28 @@
     return h('div', null, select, out);
   }
 
+  // ---------- Salud: últimos días (datos de la pulsera) ----------
+  function salud() {
+    const hist = A.health.history();
+    const head = h('p', { class: 'eyebrow' }, 'Salud: últimos días');
+    if (!hist) {
+      return h('div', null, head, h('p', { class: 'empty-msg' }, 'Conecta con Google en la pantalla Hoy para ver aquí tu sueño, tu pulso en reposo, tu VFC y tus pasos.'));
+    }
+    const chart = (title, key, unit, round) => {
+      const pts = hist[key].filter(p => p.value !== null).map(p => ({ day: p.day, y: round ? Math.round(p.value) : Math.round(p.value * 10) / 10 }));
+      const avg = pts.length ? pts.reduce((a, p) => a + p.y, 0) / pts.length : null;
+      return h('div', null,
+        h('h4', { class: 'chart-title' }, title + (avg === null ? '' : ` · media ${fmt(avg)} ${unit}`)),
+        pts.length ? lineChart(pts, unit) : h('p', { class: 'hint' }, hist.errors[key] ? 'No se pudo leer: ' + hist.errors[key] : 'Sin datos en estos días.'));
+    };
+    return h('div', null, head,
+      chart('Sueño', 'sleep', 'h', false),
+      chart('Pulso en reposo', 'rhr', 'lpm', true),
+      chart('VFC (variabilidad)', 'hrv', 'ms', true),
+      chart('Pasos', 'steps', 'pasos', true),
+      h('p', { class: 'hint' }, `Últimos 14 días. Actualizado a las ${new Date(hist.at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}.`));
+  }
+
   // ---------- Pantalla ----------
   function render(el) {
     const sessions = A.allSessions();
@@ -134,6 +156,7 @@
     const weekStart = G.mondayOf(G.dayOf(Date.now()));
     const thisWeek = real.filter(s => G.dayOf(s.startedAt) >= weekStart);
 
+    A.health.refresh(); // si hay permiso vigente y los datos de salud tienen más de 30 minutos
     A.mount(el,
       h('div', { class: 'screen-head' }, h('h2', null, 'Perfil')),
       h('div', { class: 'tiles' },
@@ -146,7 +169,8 @@
       h('p', { class: 'eyebrow' }, 'Esfuerzo por músculo (series por semana)'),
       muscles(sessions),
       h('p', { class: 'eyebrow' }, 'Evolución por ejercicio'),
-      exerciseStats(sessions));
+      exerciseStats(sessions),
+      salud());
   }
 
   A.register('perfil', { render });
