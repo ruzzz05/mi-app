@@ -26,27 +26,65 @@
     return el;
   }
 
-  // ---------- Calendario ----------
-  function dayDetail(day, sessions) {
-    const list = sessions.filter(s => !s.deleted && G.dayOf(s.startedAt) === day && doneCount(s) > 0);
-    const body = list.length ? list.map(s => h('div', { class: 'routine' },
+  // ---------- Detalle y borrado de un entreno ----------
+  const hhmm = ms => new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+  function removeSession(s) {
+    const name = s.routineName || 'Entreno';
+    if (!confirm(`¿Borrar el entreno "${name}" del ${shortDay(G.dayOf(s.startedAt))}? Se quitará también de tus estadísticas.`)) return;
+    A.deleteSession(s.id);
+    A.closeSheet();
+    A.toast('Entreno borrado');
+    A.render();
+  }
+
+  function sessionCard(s) {
+    return h('div', { class: 'routine' },
       h('h3', null, s.routineName || 'Entreno'),
       h('small', null, `${doneCount(s)} series · ${s.durationSec ? minutes(s.durationSec) : 'sin duración'} · ${fmt(G.sessionVolume(s))} kg de volumen`),
       h('div', { class: 'detail-list' }, s.exercises.map(ex => h('div', null,
         h('strong', null, A.exerciseName(ex.exId)), ': ',
-        ex.sets.map(x => `${fmt(x.reps)}×${fmt(x.weight)} kg`).join(' · '))))
-      ,
+        ex.sets.map(x => `${fmt(x.reps)}×${fmt(x.weight)} kg`).join(' · ')))),
       h('div', { class: 'routine-actions' },
-        h('button', {
-          class: 'mini danger', type: 'button',
-          onclick: () => {
-            if (!confirm('¿Borrar este entreno del historial?')) return;
-            A.deleteSession(s.id);
-            A.closeSheet();
-            A.render();
-          }
-        }, 'Borrar entreno')))) : h('p', { class: 'empty-msg' }, 'No entrenaste este día.');
-    A.openSheet(longDay(day), body);
+        h('button', { class: 'mini danger', type: 'button', onclick: () => removeSession(s) }, 'Borrar entreno')));
+  }
+
+  // ---------- Calendario ----------
+  function dayDetail(day, sessions) {
+    const list = sessions.filter(s => !s.deleted && G.dayOf(s.startedAt) === day && doneCount(s) > 0);
+    A.openSheet(longDay(day), list.length ? list.map(sessionCard) : h('p', { class: 'empty-msg' }, 'No entrenaste este día.'));
+  }
+
+  // ---------- Lista de entrenos (con su papelera) ----------
+  const HIST_PAGE = 8;
+  let histShown = HIST_PAGE;   // cuántos se enseñan; "Ver más" los amplía
+
+  function historial(sessions) {
+    const list = sessions.filter(s => !s.deleted && doneCount(s) > 0).sort((x, y) => y.startedAt - x.startedAt);
+    if (!list.length) return null;
+    const rows = list.slice(0, histShown).map(s => h('div', { class: 'hist-row' },
+      h('button', {
+        class: 'hist-main', type: 'button',
+        onclick: () => A.openSheet(longDay(G.dayOf(s.startedAt)), sessionCard(s))
+      }, h('b', null, s.routineName || 'Entreno'),
+        h('small', null, `${shortDay(G.dayOf(s.startedAt))} · ${hhmm(s.startedAt)} · ${doneCount(s)} series${s.durationSec ? ' · ' + minutes(s.durationSec) : ''}`)),
+      h('button', {
+        class: 'icon-btn hist-del', type: 'button', 'aria-label': `Borrar el entreno ${s.routineName || ''} del ${shortDay(G.dayOf(s.startedAt))}`,
+        title: 'Borrar entreno', onclick: () => removeSession(s)
+      }, htmlIcon())));
+    return h('div', null,
+      h('p', { class: 'eyebrow' }, 'Mis entrenos'),
+      rows,
+      list.length > histShown
+        ? h('button', { class: 'mini', type: 'button', onclick: () => { histShown += HIST_PAGE; A.render(); } }, `Ver más (${list.length - histShown})`)
+        : null,
+      h('p', { class: 'hint' }, 'Toca un entreno para ver sus series. La papelera lo borra.'));
+  }
+
+  function htmlIcon() {
+    const w = document.createElement('span');
+    w.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/></svg>';
+    return w.firstChild;
   }
 
   function calendar(sessions) {
@@ -166,6 +204,7 @@
       h('p', { class: 'eyebrow' }, 'Calendario'),
       calendar(sessions),
       h('p', { class: 'hint' }, 'Toca un día para ver qué hiciste.'),
+      historial(sessions),
       h('p', { class: 'eyebrow' }, 'Esfuerzo por músculo (series por semana)'),
       muscles(sessions),
       h('p', { class: 'eyebrow' }, 'Evolución por ejercicio'),

@@ -1,4 +1,5 @@
-// Pantalla Menú: crear y editar el menú. Un menú nuevo queda activo al crearlo (no hay paso de confirmar).
+// Pantalla Menú: crear y editar el menú. Un menú nuevo queda activo al crearlo (no hay paso de confirmar)
+// y las comidas sin plato se rellenan solas (no hay botón de rellenar ni de regenerar).
 (() => {
   const C = window.Comidas;
   const P = window.Planner;
@@ -21,11 +22,22 @@
     C.save();
   };
 
+  // Las comidas sin plato se rellenan solas con platos de tu lista (los que ya hay no se tocan)
+  C.ensureFilled = () => {
+    const m = C.state.menu;
+    if (!m || !C.state.dishes.length || !P.emptySlots(m).length) return;
+    const next = P.fillMenu({ dishes: C.state.dishes, menu: m });
+    if (P.emptySlots(next).length === P.emptySlots(m).length) return;   // no hay nada que poner (p. ej. por exclusiones)
+    C.state.menu = next;
+    C.save();
+  };
+
   const which = () => (C.state.menu ? 'menu' : null);
 
   function render(el) {
     el.onclick = null;
     C.promoteDraft();
+    C.ensureFilled();
     if (!C.state.dishes.length) {
       el.innerHTML = `<div class="hero"><h2>Primero, tus recetas</h2>
         <p>Para crear un menú necesito conocer los platos que sabes preparar.</p>
@@ -100,26 +112,21 @@
     for (let d = 0; d < m.days; d++) {
       const slots = P.SLOTS.filter(s => keys.includes(P.slotKey(d, s))).map(s => {
         const e = m.plan[P.slotKey(d, s)];
+        const has = e && !e.empty;
         return `<button class="slot" type="button" data-act="slot" data-day="${d}" data-slot="${s}">
           <span class="label">${LABEL[s]}</span>
-          <span class="name ${e ? '' : 'empty'}">${e ? esc(e.name) : 'Sin plato'}</span>
+          <span class="name ${has ? '' : 'empty'}">${has ? esc(e.name) : 'Sin plato'}</span>
         </button>`;
       }).join('');
-      days.push(`<div class="day"><h3><span>${dayLabel(m.startDate, d)}</span>
-        <button class="mini" type="button" data-act="regen-day" data-day="${d}">Regenerar día</button></h3>${slots}</div>`);
+      days.push(`<div class="day"><h3><span>${dayLabel(m.startDate, d)}</span></h3>${slots}</div>`);
     }
 
     el.innerHTML = `
-      <div class="screen-head"><h2>Tu menú</h2></div>
-      <p class="sub">${m.days} ${m.days === 1 ? 'día' : 'días'} desde ${dayLabel(m.startDate, 0).toLowerCase()}.</p>
-      <div class="toolbar">
-        <button class="btn ghost" type="button" data-act="fill">Rellenar huecos</button>
-        <button class="btn ghost" type="button" data-act="new">Menú nuevo</button>
+      <div class="screen-head"><h2>Tu menú</h2>
+        <button class="new-menu-btn" type="button" data-act="new" aria-label="Menú nuevo" title="Menú nuevo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
       </div>
+      <p class="sub">${m.days} ${m.days === 1 ? 'día' : 'días'} desde ${dayLabel(m.startDate, 0).toLowerCase()}.</p>
       ${days.join('')}`;
-
-    const ctx = () => ({ dishes: C.state.dishes, menu: C.state[w] });
-    const set = menu => { C.state[w] = menu; C.save(); C.render(); };
 
     el.onclick = e => {
       const b = e.target.closest('[data-act]');
@@ -127,8 +134,6 @@
       const a = b.dataset.act;
       const day = +b.dataset.day;
       if (a === 'slot') openSlot(w, day, b.dataset.slot);
-      else if (a === 'regen-day') set(P.regenerateDay({ ...ctx(), day }));
-      else if (a === 'fill') { set(P.fillMenu(ctx())); C.toast('Huecos rellenados'); }
       else if (a === 'new') {
         if (confirm('¿Crear un menú nuevo? Se perderá el actual y los cambios de la lista de la compra.')) {
           C.state.menu = null; C.state.list = P.emptyList(); C.save(); C.render();
@@ -144,10 +149,14 @@
     const cur = m.plan[key];
     const set = menu => { C.state[w] = menu; C.save(); C.closeSheet(); C.render(); };
     C.openSheet(`${dayLabel(m.startDate, d)} · ${LABEL[slot]}`, `
-      <input id="pick-input" class="field" type="text" placeholder="Busca o escribe un plato" autocomplete="off">
+      ${cur && cur.empty
+        ? `<button id="pick-random" class="remove-btn neutral" type="button">Poner un plato al azar</button>
+        <p class="hint remove-hint">Esta comida está vacía a propósito.</p>`
+        : cur ? `<button id="pick-remove" class="remove-btn" type="button">Quitar «${esc(cur.name)}»</button>
+        <p class="hint remove-hint">Se cambia por otro de tus platos.</p>` : ''}
+      <input id="pick-input" class="field" type="text" placeholder="O busca o escribe otro plato" autocomplete="off">
       <div id="pick-list" style="margin-top:14px"></div>
       <div class="sheet-actions">
-        ${cur ? '<button id="pick-remove" class="btn danger" type="button">Quitar</button>' : ''}
         <button id="pick-use" class="btn" type="button">Usar texto escrito</button>
       </div>`);
 
@@ -156,12 +165,19 @@
     const paint = () => {
       const q = input.value.trim().toLowerCase();
       const found = C.state.dishes.filter(x => x.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, 'es'));
-      list.innerHTML = found.length
+      // La primera opción siempre es dejar la comida vacía
+      const none = `<button class="card-row pick-empty" type="button" data-empty="1">Dejar vacía<small>Sin plato en esta comida</small></button>`;
+      list.innerHTML = none + (found.length
         ? found.map(x => `<button class="card-row" type="button" data-id="${x.id}">${esc(x.name)}</button>`).join('')
-        : '<p class="empty-msg">Sin coincidencias. Puedes usar el texto escrito.</p>';
+        : '<p class="empty-msg">Sin coincidencias. Puedes usar el texto escrito.</p>');
     };
     input.oninput = paint; paint();
     list.onclick = e => {
+      if (e.target.closest('[data-empty]')) {
+        set({ ...m, plan: { ...m.plan, [key]: { id: null, name: '', empty: true } } });
+        C.toast('Comida dejada vacía');
+        return;
+      }
       const r = e.target.closest('[data-id]');
       if (!r) return;
       const dish = C.state.dishes.find(x => x.id === r.dataset.id);
@@ -175,8 +191,21 @@
       set({ ...m, plan: { ...m.plan, [key]: known ? { id: known.id, name: known.name } : { id: null, name: text } } });
     };
 
-    if (cur) {
-      $('pick-remove').onclick = () => { const plan = { ...m.plan }; delete plan[key]; set({ ...m, plan }); };
+    if (cur && cur.empty) {
+      $('pick-random').onclick = () => {
+        const plan = { ...m.plan }; delete plan[key];
+        const next = P.fillMenu({ dishes: C.state.dishes, menu: { ...m, plan } });
+        const now = next.plan[key];
+        set(next);
+        C.toast(now ? `Puesto: ${now.name}` : 'No hay platos para poner');
+      };
+    } else if (cur) {
+      $('pick-remove').onclick = () => {
+        const next = P.rerollSlot({ dishes: C.state.dishes, menu: m, day: d, slot });
+        const now = next.plan[key];
+        set(next);
+        C.toast(now && now.name !== cur.name ? `Cambiado por ${now.name}` : 'No hay otro plato para cambiarlo');
+      };
     }
   }
 

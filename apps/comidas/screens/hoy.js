@@ -21,6 +21,7 @@
 
   function render(el) {
     if (C.promoteDraft) C.promoteDraft(); // un borrador antiguo pasa a ser el menú activo
+    if (C.ensureFilled) C.ensureFilled(); // las comidas sin plato se rellenan solas
     const v = P.todayView({ menu: C.state.menu, now: new Date() });
     el.onclick = e => { const b = e.target.closest('[data-go]'); if (b) C.go(b.dataset.go); };
 

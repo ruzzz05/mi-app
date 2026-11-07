@@ -132,7 +132,12 @@
     return { ...next, plan: fill({ dishes, menu: next, plan: cleared, keys: affected, rng }) };
   }
 
-  const api = { WEIGHTS, NEAR, SLOTS, slotKey, slotKeys, isAllowed, newMenu, fillMenu, rerollSlot, regenerateDay, excludeAndReplace };
+  // Comidas del menú que no tienen plato, en orden
+  function emptySlots(menu) {
+    return menu ? slotKeys(menu).filter(k => !menu.plan[k]) : [];
+  }
+
+  const api = { WEIGHTS, NEAR, SLOTS, slotKey, slotKeys, emptySlots, isAllowed, newMenu, fillMenu, rerollSlot, regenerateDay, excludeAndReplace };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Planner = Object.assign(root.Planner || {}, api);
 })(typeof window !== 'undefined' ? window : globalThis);

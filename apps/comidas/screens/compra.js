@@ -14,6 +14,7 @@
   let boughtOpen = false; // el bloque "Comprados" recuerda si estaba desplegado
 
   function render(el) {
+    if (C.ensureFilled) C.ensureFilled(); // las comidas sin plato se rellenan solas
     const all = items();
     const removed = C.state.list.removed;
 

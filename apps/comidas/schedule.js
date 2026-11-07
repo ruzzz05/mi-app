@@ -14,6 +14,9 @@
     return Math.round((utc(toISO) - utc(fromISO)) / DAY_MS);
   }
 
+  // Una comida dejada vacía a propósito ({ empty: true }) cuenta como sin plato
+  const entryOf = (menu, key) => { const e = menu.plan[key]; return e && !e.empty ? e : null; };
+
   const mealNow = now => (now.getHours() < DINNER_FROM ? 'comida' : 'cena');
 
   // Cuándo propone empezar un menú creado ahora.
@@ -34,7 +37,7 @@
     const rest = keys.slice(at + 1).map(k => { const [d, m] = k.split('-'); return { key: k, day: parseInt(d, 10), meal: m }; });
     const today = rest.filter(x => x.day === dayIdx);
     const chosen = today.length ? today : rest.filter(x => x.day === dayIdx + 1);
-    return chosen.map(x => ({ dayOffset: x.day - dayIdx, meal: x.meal, entry: menu.plan[x.key] || null }));
+    return chosen.map(x => ({ dayOffset: x.day - dayIdx, meal: x.meal, entry: entryOf(menu, x.key) }));
   }
 
   // Qué toca ahora según el menú: { status: 'none'|'notStarted'|'active'|'finished', ... }
@@ -54,7 +57,7 @@
       status: 'active',
       dayNumber: dayIdx + 1,
       meal,
-      current: menu.plan[R.slotKey(dayIdx, meal)] || null,
+      current: entryOf(menu, R.slotKey(dayIdx, meal)),
       upcoming: upcomingMeals(menu, dayIdx, meal)
     };
   }

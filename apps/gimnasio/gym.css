@@ -339,3 +339,10 @@ body {
 .rec-line { display: flex; align-items: baseline; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .rec-line span { flex: 1; color: var(--ink-2); }
 .rec-line small { color: var(--ink-3); font-size: 12px; }
+
+/* Lista de entrenos con papelera (Perfil) */
+.hist-row { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.hist-main { appearance: none; flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); padding: 12px 14px; text-align: left; font: 600 15px var(--sans); cursor: pointer; }
+.hist-main small { display: block; margin-top: 2px; font-weight: 400; font-size: 12px; color: var(--ink-3); }
+.hist-del { flex: none; color: #a33; width: 48px; height: 48px; }
+.hist-del svg { width: 20px; height: 20px; }
