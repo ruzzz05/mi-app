@@ -4,7 +4,12 @@
   const P = window.Planner;
   const { $, esc } = C;
 
-  const items = () => P.buildShoppingList({ dishes: C.state.dishes, menu: C.state.menu, list: C.state.list });
+  // Las comidas que ya han pasado no cuentan: sus ingredientes dejan de hacer falta
+  const items = () => P.buildShoppingList({ dishes: C.state.dishes, menu: C.state.menu, list: C.state.list, now: new Date() });
+  const pastMeals = () => {
+    const m = C.state.menu;
+    return m ? P.pastSlotKeys(m, new Date()).filter(k => m.plan[k] && m.plan[k].id).length : 0;
+  };
   const setList = list => { C.state.list = list; C.save(); C.render(); };
   let boughtOpen = false; // el bloque "Comprados" recuerda si estaba desplegado
 
@@ -32,6 +37,7 @@
     el.innerHTML = `
       <div class="screen-head"><h2>Compra</h2></div>
       ${C.state.menu ? '' : '<p class="sub">Crea un menú y aquí aparecerá la lista de la semana.</p>'}
+      ${pastMeals() ? `<p class="sub">No cuento ${pastMeals()} ${pastMeals() === 1 ? 'comida que ya ha pasado' : 'comidas que ya han pasado'}.</p>` : ''}
       <div class="add-row">
         <input id="add-name" class="field" type="text" placeholder="Añadir producto" autocomplete="off">
         <input id="add-qty" class="field qty-in" type="text" inputmode="decimal" value="1" aria-label="Cantidad">

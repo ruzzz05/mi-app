@@ -8,8 +8,9 @@
     return parseInt(day, 10) * 10 + Math.max(0, SLOT_ORDER.indexOf(slot));
   };
 
-  // Ingredientes de todos los platos del menú. Un plato que aparece varias veces cuenta cada vez.
-  function buildShoppingList({ dishes = [], menu = null, list = R.emptyList() }) {
+  // Ingredientes de los platos del menú. Un plato que aparece varias veces cuenta cada vez.
+  // Si se pasa `now`, las comidas que ya han pasado no cuentan (ver Planner.pastSlotKeys).
+  function buildShoppingList({ dishes = [], menu = null, list = R.emptyList(), now = null }) {
     const map = new Map();
     const bump = (key, name, qty, recipe, manual) => {
       const item = map.get(key) || { key, name, qty: 0, recipes: [], manual };
@@ -19,7 +20,9 @@
     };
 
     const plan = menu ? menu.plan : {};
+    const past = now && menu ? new Set(R.pastSlotKeys(menu, now)) : null;
     Object.keys(plan).sort((a, b) => keyOrder(a) - keyOrder(b)).forEach(k => {
+      if (past && past.has(k)) return;
       const dish = dishes.find(x => x.id === plan[k].id);
       if (!dish) return;
       R.ingredientsOf(dish).forEach(ing => {

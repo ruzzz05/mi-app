@@ -59,7 +59,21 @@
     };
   }
 
-  const api = { mealNow, proposeStart, todayView, toISODate };
+  // Comidas del menú que ya han pasado (sus ingredientes ya no hacen falta en la compra). Una comida
+  // pasa cuando empieza la siguiente: la comida a las 17:00 y la cena al terminar el día. Con el menú
+  // sin empezar no ha pasado ninguna; con el menú terminado, todas.
+  function pastSlotKeys(menu, now) {
+    if (!menu) return [];
+    const keys = R.slotKeys(menu);
+    const dayIdx = daysBetween(menu.startDate, toISODate(now));
+    if (dayIdx < 0) return [];
+    if (dayIdx >= menu.days) return keys;
+    const meal = dayIdx === 0 && menu.firstMeal === 'cena' ? 'cena' : mealNow(now);
+    const at = keys.indexOf(R.slotKey(dayIdx, meal));
+    return at < 0 ? [] : keys.slice(0, at);
+  }
+
+  const api = { mealNow, proposeStart, todayView, toISODate, pastSlotKeys };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Planner = Object.assign(root.Planner || {}, api);
 })(typeof window !== 'undefined' ? window : globalThis);
