@@ -48,12 +48,12 @@
       C.adoptState(P.migrateState(null));
     },
 
-    toast(msg) {
+    toast(msg, ms) {
       const t = $('toast');
       t.textContent = msg;
       t.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+      toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2200);
     },
 
     openSheet(title, html) {

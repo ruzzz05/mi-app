@@ -32,7 +32,9 @@
     ready: new Promise(r => { resolveReady = r; }),
     auth: null,
     username: stored,
-    signOut: null
+    signOut: null,
+    // Qué está haciendo ahora mismo la puerta (para avisos de diagnóstico)
+    diag: () => (settled ? 'sesión confirmada' : STEP_TEXT[step] + ' · ' + seconds() + ' s')
   };
 
   let overlay = null;
@@ -198,7 +200,13 @@
       import(SDK + 'firebase-app.js'),
       import(SDK + 'firebase-auth.js')
     ]);
-    return { core: window.MiAuthCore, sdk: a, auth: a.getAuth(app.initializeApp(cfg.firebaseConfig)) };
+    const fbApp = app.initializeApp(cfg.firebaseConfig);
+    // La sesión se guarda en localStorage y no en IndexedDB (lo normal en Firebase): en iOS abrir
+    // IndexedDB puede tardar mucho o no responder, y la app se quedaba esperando la sesión para siempre.
+    let auth;
+    try { auth = a.initializeAuth(fbApp, { persistence: a.browserLocalPersistence }); }
+    catch (e) { auth = a.getAuth(fbApp); }
+    return { core: window.MiAuthCore, sdk: a, auth };
   }
 
   let loaded = null; // { core, sdk, auth } cuando Firebase ya ha cargado

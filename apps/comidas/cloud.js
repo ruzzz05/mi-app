@@ -127,10 +127,17 @@ C.onSave = () => {
 };
 
 C.syncNow = async () => {
+  C.toast('Sincronizando…', 3000);
+  // Si la sesión no responde (p. ej. el móvil tarda en leerla), que se diga en vez de quedarse mudo
+  const session = await Promise.race([A.ready.then(() => true), new Promise(r => setTimeout(() => r(false), 10000))]);
+  if (!session) {
+    C.toast('La sesión no responde (' + A.diag() + '). Cierra la app del todo y vuelve a abrirla.', 9000);
+    return;
+  }
   const connected = await connect({ force: true });
   const ok = connected && await flush();
   if (ok) C.toast('Sincronizado');
-  else C.toast(connected ? 'No se pudo subir: ' + lastError : 'No se pudo conectar: ' + (lastError || 'sin conexión'));
+  else C.toast(connected ? 'No se pudo subir: ' + lastError : 'No se pudo conectar: ' + (lastError || 'sin conexión'), 9000);
 };
 
 window.addEventListener('online', flush);
