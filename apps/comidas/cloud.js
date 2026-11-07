@@ -1,28 +1,41 @@
-// Copia de seguridad en Firebase, sin iniciar sesión: cada instalación usa una identidad anónima
-// y guarda su estado en users/{identidad}. Si falla (sin conexión, sin permisos…) la app sigue
+// Copia de seguridad en Firebase ligada a la cuenta con la que has iniciado sesión (shared/auth.js).
+// El estado se guarda en users/{uid}. Si falla (sin conexión, sin permisos…) la app sigue
 // funcionando con los datos del propio móvil y lo reintenta más tarde.
 //
-// La identidad usa la librería de Auth de Firebase. El documento se lee y se guarda con la API
-// REST de Firestore (con el token de esa identidad): la librería de Firestore falla de forma
-// interna al cargar otra página en la misma sesión, y así además se carga mucho menos código.
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import { firebaseConfig } from './firebase-config.js';
+// Para no consultar Firebase en cada apertura, la nube solo se LEE como mucho una vez cada 24 h
+// (o si no hay datos en el móvil, o con "Sincronizar ahora"). Los cambios se suben al editar.
+//
+// El documento se lee y se guarda con la API REST de Firestore (con el token de la sesión): la
+// librería de Firestore falla de forma interna al cargar otra página en la misma sesión, y así
+// además se carga mucho menos código.
+import { firebaseConfig } from '../../shared/firebase-config.js';
 
 const C = window.Comidas;
 const P = window.Planner;
+const A = window.MiAuth;
 const PUSH_DELAY = 1500; // espera a que dejes de tocar cosas antes de subir
+const OWNER_KEY = 'comidas.owner';           // uid de la cuenta a la que pertenecen los datos del móvil
+const PENDING_KEY = 'pending-sync.comidas';  // '1' mientras haya cambios sin subir (lo mira auth.js al cerrar sesión)
+const lastSyncKey = uid => 'comidas.lastSync.' + uid;
 
-let auth = null;
+// localStorage puede no estar disponible (modo privado): entonces se actúa como "nunca sincronizado"
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ } }
+};
+
 let ready = false;
-let dirty = false;
+let dirty = store.get(PENDING_KEY) === '1';
 let timer = null;
 
+const uid = () => A.auth.currentUser.uid;
+
 const docUrl = () =>
-  `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${auth.currentUser.uid}`;
+  `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${uid()}`;
 
 async function request(method, url, body) {
-  const token = await auth.currentUser.getIdToken();
+  const token = await A.auth.currentUser.getIdToken();
   const res = await fetch(url, {
     method,
     headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
@@ -38,28 +51,48 @@ const readRemote = async () => P.fromFirestoreDoc(await request('GET', docUrl())
 const writeRemote = data =>
   request('PATCH', docUrl() + '?updateMask.fieldPaths=updatedAt&updateMask.fieldPaths=json', P.toFirestoreFields(data));
 
-// Una sola conexión a la vez
+// Los datos del móvil pertenecen a una cuenta; si ahora entra otra, no se suben a la nueva.
+function checkOwner() {
+  const action = P.ownerAction(store.get(OWNER_KEY), uid());
+  if (action === 'wipe') {
+    clearTimeout(timer);
+    dirty = false;
+    store.del(PENDING_KEY);
+    C.clearLocal();
+  }
+  if (action !== 'keep') store.set(OWNER_KEY, uid());
+}
+
+// Lee la nube y decide qué copia gana
+async function sync() {
+  const remote = await readRemote();
+  const action = P.decideSync({ local: C.state, remote });
+  if (action === 'adopt') {
+    C.adoptState(P.deserializeRemote(remote));
+    dirty = false;
+    store.del(PENDING_KEY);
+    C.toast('Datos recuperados de la nube');
+  } else if (action === 'upload') {
+    await push();
+  }
+  store.set(lastSyncKey(uid()), String(Date.now()));
+}
+
+// Una sola conexión a la vez. force:true obliga a leer la nube aunque no toque.
 let connecting = null;
-function connect() {
-  if (ready) return Promise.resolve(true);
-  if (!connecting) connecting = doConnect().finally(() => { connecting = null; });
+function connect(opts) {
+  const force = !!(opts && opts.force);
+  if (ready && !force) return Promise.resolve(true);
+  if (!connecting) connecting = doConnect(force).finally(() => { connecting = null; });
   return connecting;
 }
 
-async function doConnect() {
+async function doConnect(force) {
   try {
-    auth = getAuth(initializeApp(firebaseConfig));
-    await auth.authStateReady();
-    if (!auth.currentUser) await signInAnonymously(auth);
-
-    const remote = await readRemote();
-    const action = P.decideSync({ local: C.state, remote });
-    if (action === 'adopt') {
-      C.adoptState(P.deserializeRemote(remote));
-      C.toast('Datos recuperados de la nube');
-    } else if (action === 'upload') {
-      await push();
-    }
+    await A.ready; // no se resuelve hasta que hay sesión
+    checkOwner();
+    const lastSyncAt = Number(store.get(lastSyncKey(uid())));
+    if (P.shouldReadRemote({ local: C.state, lastSyncAt, now: Date.now(), force })) await sync();
     ready = true;
     return true;
   } catch (err) {
@@ -73,6 +106,7 @@ async function push() {
   if (!C.state.updatedAt) { C.state.updatedAt = data.updatedAt; C.save({ touch: false }); }
   await writeRemote(data);
   dirty = false;
+  store.del(PENDING_KEY);
 }
 
 async function flush() {
@@ -83,10 +117,25 @@ async function flush() {
 
 C.onSave = () => {
   dirty = true;
+  store.set(PENDING_KEY, '1');
   clearTimeout(timer);
   timer = setTimeout(flush, PUSH_DELAY);
 };
+
+C.syncNow = async () => {
+  const ok = await connect({ force: true });
+  if (ok) await flush();
+  C.toast(ok ? 'Sincronizado' : 'Sin conexión');
+};
+
 window.addEventListener('online', flush);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
 
-connect();
+const syncBtn = document.getElementById('sync-now');
+if (syncBtn) syncBtn.addEventListener('click', () => {
+  syncBtn.disabled = true;
+  C.syncNow().finally(() => { syncBtn.disabled = false; });
+});
+
+// Al abrir: comprobar la cuenta y, si toca, leer; y subir lo que se quedó pendiente
+connect().then(ok => { if (ok) flush(); });

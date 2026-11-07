@@ -38,8 +38,7 @@
       "apps/comidas/screens/hoy.js",
       "apps/comidas/screens/compra.js",
       "apps/comidas/cloudsync.js",
-      "apps/comidas/cloud.js",
-      "apps/comidas/firebase-config.js"
+      "apps/comidas/cloud.js"
     ]
   }
 ]

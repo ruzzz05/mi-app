@@ -16,6 +16,7 @@
 
 <link rel="stylesheet" href="../../shared/styles.css">
 <link rel="stylesheet" href="comidas.css">
+<script src="../../shared/auth.js"></script>
 <script src="../../shared/theme.js"></script>
 </head>
 
@@ -26,7 +27,12 @@
       Inicio
     </a>
     <span class="title">Mi-Menu</span>
-    <span class="spacer"></span>
+    <span class="topbar-actions">
+      <button id="sync-now" class="theme-toggle" type="button" aria-label="Sincronizar ahora" title="Sincronizar ahora">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 00-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0014.5 4.5L20 16"/><path d="M20 20v-4h-4"/></svg>
+      </button>
+      <span class="spacer"></span>
+    </span>
   </header>
 
   <div class="scroller">

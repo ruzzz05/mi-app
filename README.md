@@ -20,6 +20,10 @@ mi-app/
 ├── shared/               Lo que usan todas las apps
 │   ├── styles.css          Tema blanco y negro, botones, campos
 │   ├── pwa.js              Registra el service worker
+│   ├── auth.js             Puerta de entrada: pide usuario y contraseña (va en todas las páginas)
+│   ├── authcore.js         Lógica de las cuentas (validar usuario, mensajes), sin red
+│   ├── firebase-config.js  Datos de conexión de Firebase (los usan todas las apps)
+│   ├── tests/              Tests de authcore.js
 │   └── theme.js            Botón de modo claro/oscuro (lo inserta solo)
 │
 ├── apps/                 Una carpeta por app, todo autocontenido
@@ -55,6 +59,12 @@ mi-app/
 
 ---
 
+## Cuentas
+
+Toda la app exige una sesión (usuario y contraseña, con Firebase Auth). `shared/auth.js` oculta la página, carga Firebase y muestra el login hasta que hay sesión; la sesión se guarda en el navegador y vale para todas las apps. Internamente el usuario se convierte en `usuario@mi-app.invalid`, así que **no hay recuperación de contraseña**: si alguien la olvida, hay que borrar su cuenta en la consola de Firebase (Authentication → Users). Los datos de Mi-Menu se guardan por cuenta y se leen de la nube como mucho una vez cada 24 h (botón "Sincronizar ahora" para forzarlo). Los CSV y demás archivos estáticos siguen siendo públicos (GitHub Pages); solo los datos de Firestore quedan protegidos por las reglas.
+
+---
+
 ## Cómo encaja todo
 
 ```
@@ -74,7 +84,7 @@ mi-app/
 
 ## Añadir una app nueva
 
-1. Crea la carpeta `apps/mi-app/` con su `index.html` (copia la cabecera de otra app: enlaza a `../../shared/styles.css` y `../../shared/pwa.js`).
+1. Crea la carpeta `apps/mi-app/` con su `index.html` (copia la cabecera de otra app: enlaza a `../../shared/styles.css` y `../../shared/pwa.js`). **Imprescindible:** `<script src="../../shared/auth.js"></script>` como primer script del `<head>`, antes de `theme.js`. Sin esa línea la app se abriría sin pedir cuenta (`bash tests/run.sh` lo comprueba).
 2. Añade una entrada en `apps.json`:
 
 ```json
@@ -124,6 +134,6 @@ Abre `http://localhost:8000`. Sin servidor no funcionan ni el service worker ni 
 bash tests/run.sh
 ```
 
-Ejecuta los tests de `apps/*/tests/` con Edge o Chrome sin interfaz (no hace falta Node). Cubren la lógica de Comidas (recetas, menú, lista, horarios), no el aspecto de las pantallas.
+Ejecuta los tests de `apps/*/tests/` y `shared/tests/` (y comprueba que todas las páginas incluyen `auth.js`) con Edge o Chrome sin interfaz (no hace falta Node). Cubren la lógica de Comidas (recetas, menú, lista, horarios), no el aspecto de las pantallas.
 
 La lógica de cada app se escribe con TDD: primero el test que falla, después el código mínimo para que pase.

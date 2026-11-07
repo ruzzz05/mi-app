@@ -11,7 +11,15 @@ done
 [ -z "$BROWSER" ] && { echo "No se encontró Edge ni Chrome"; exit 2; }
 
 STATUS=0
-for page in apps/*/tests/*.test.html; do
+
+# Toda página (la portada y cada app de apps.json) debe cargar shared/auth.js, y antes que theme.js
+echo "== sesion obligatoria en todas las paginas"
+for f in index.html $(grep -o '"path": "[^"]*"' apps.json | sed 's/"path": "//; s/"$//'); do
+  A=$(grep -n 'shared/auth\.js' "$f" | head -1 | cut -d: -f1)
+  T=$(grep -n 'shared/theme\.js' "$f" | head -1 | cut -d: -f1)
+  if [ -z "$A" ] || { [ -n "$T" ] && [ "$A" -gt "$T" ]; }; then echo "FALTA auth.js (o va despues de theme.js) en $f"; STATUS=1; else echo "PASS $f"; fi
+done
+for page in apps/*/tests/*.test.html shared/tests/*.test.html; do
   echo "== $page"
   URL="file:///$(cygpath -m "$PWD/$page")"
   OUT=$("$BROWSER" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=4000 --dump-dom "$URL" 2>/dev/null)

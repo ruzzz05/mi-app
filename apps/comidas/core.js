@@ -40,6 +40,14 @@
       C.go(current && screens[current] ? current : (next.menu ? 'hoy' : (next.dishes.length ? 'menu' : 'recetas')));
     },
 
+    // Borra los datos guardados en este móvil (los usa cloud.js cuando entra otra cuenta)
+    clearLocal() {
+      ['', '.bak', '.pre-limpieza'].forEach(suffix => {
+        try { localStorage.removeItem(KEY + suffix); } catch (e) { /* sin almacenamiento */ }
+      });
+      C.adoptState(P.migrateState(null));
+    },
+
     toast(msg) {
       const t = $('toast');
       t.textContent = msg;

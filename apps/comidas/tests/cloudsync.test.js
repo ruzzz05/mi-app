@@ -95,3 +95,44 @@ test('ida y vuelta por el formato de Firestore conserva acentos y comillas', () 
   const sent = Planner.serializeState({ ...s, updatedAt: 42 }, 1);
   assert.eq(Planner.deserializeRemote(Planner.fromFirestoreDoc(JSON.parse(JSON.stringify(Planner.toFirestoreFields(sent))))).dishes[0].name, 'Crema de calabacín & "queso" ñ');
 });
+
+// ---- Cuando leer de la nube y de quien son los datos locales ----
+const NOW = 1_000_000_000_000;
+const D = Planner.SYNC_INTERVAL_MS;
+
+test('SYNC_INTERVAL_MS son 24 horas', () => {
+  assert.eq(D, 86400000);
+});
+
+test('shouldReadRemote: con datos y sincronizado hace poco no lee', () => {
+  assert.eq(Planner.shouldReadRemote({ local: withData(), lastSyncAt: NOW - 1000, now: NOW }), false);
+});
+
+test('shouldReadRemote: a las 24 horas justas lee, un instante antes no', () => {
+  assert.eq(Planner.shouldReadRemote({ local: withData(), lastSyncAt: NOW - D, now: NOW }), true);
+  assert.eq(Planner.shouldReadRemote({ local: withData(), lastSyncAt: NOW - D + 1, now: NOW }), false);
+});
+
+test('shouldReadRemote: sin fecha de ultima lectura valida lee', () => {
+  [undefined, null, 0, NaN, -5].forEach(v =>
+    assert.eq(Planner.shouldReadRemote({ local: withData(), lastSyncAt: v, now: NOW }), true, 'lastSyncAt ' + v));
+});
+
+test('shouldReadRemote: con el reloj adelantado (ultima lectura en el futuro) lee', () => {
+  assert.eq(Planner.shouldReadRemote({ local: withData(), lastSyncAt: NOW + 5000, now: NOW }), true);
+});
+
+test('shouldReadRemote: sin datos locales lee siempre', () => {
+  assert.eq(Planner.shouldReadRemote({ local: emptyS(), lastSyncAt: NOW - 1000, now: NOW }), true);
+});
+
+test('shouldReadRemote: force obliga a leer', () => {
+  assert.eq(Planner.shouldReadRemote({ local: withData(), lastSyncAt: NOW - 1000, now: NOW, force: true }), true);
+});
+
+test('ownerAction: sin dueño guardado lo reclama, el mismo lo mantiene, otro borra', () => {
+  assert.eq(Planner.ownerAction(null, 'u1'), 'claim');
+  assert.eq(Planner.ownerAction('', 'u1'), 'claim');
+  assert.eq(Planner.ownerAction('u1', 'u1'), 'keep');
+  assert.eq(Planner.ownerAction('u2', 'u1'), 'wipe');
+});

@@ -16,6 +16,7 @@
 <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
 
 <link rel="stylesheet" href="shared/styles.css">
+<script src="shared/auth.js"></script>
 <script src="shared/theme.js"></script>
 <style>
   .home {
@@ -99,6 +100,31 @@
   }
   .social a:active { color: var(--ink); border-color: var(--ink); transform: scale(.97); }
   .social svg { width: 18px; height: 18px; }
+
+  .account {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .account[hidden] { display: none; }
+  .account strong { color: var(--ink); }
+  .account button {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .account button:active { color: var(--ink); border-color: var(--ink); }
 </style>
 </head>
 <body>
@@ -120,6 +146,11 @@
         <span>LinkedIn</span>
       </a>
     </footer>
+
+    <div class="account" id="account" hidden>
+      <span>Sesión: <strong id="account-name"></strong></span>
+      <button type="button" id="logout">Cerrar sesión</button>
+    </div>
   </main>
 
 <script>
@@ -142,6 +173,14 @@ fetch('apps.json')
   .catch(() => {
     document.getElementById('menu').innerHTML = '<p style="color:var(--ink-3)">No se pudo cargar la lista de aplicaciones.</p>';
   });
+</script>
+<script>
+// Zona de cuenta: aparece cuando hay sesión (shared/auth.js)
+MiAuth.ready.then(() => {
+  document.getElementById('account-name').textContent = MiAuth.username;
+  document.getElementById('account').hidden = false;
+});
+document.getElementById('logout').addEventListener('click', () => MiAuth.signOut());
 </script>
 <script src="shared/pwa.js"></script>
 </body>

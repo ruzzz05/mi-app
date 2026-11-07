@@ -50,7 +50,24 @@
     return { updatedAt, json: f.json.stringValue };
   }
 
-  const api = { isEmptyState, serializeState, deserializeRemote, decideSync, toFirestoreFields, fromFirestoreDoc };
+  // Como mucho una lectura de la nube cada 24 h, salvo que no haya datos locales, no haya
+  // constancia de una lectura anterior (o el reloj esté adelantado) o se fuerce.
+  const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+  function shouldReadRemote({ local, lastSyncAt, now, force }) {
+    if (force || isEmptyState(local)) return true;
+    if (!Number.isFinite(lastSyncAt) || lastSyncAt <= 0 || lastSyncAt > now) return true;
+    return now - lastSyncAt >= SYNC_INTERVAL_MS;
+  }
+
+  // Los datos locales pertenecen a una cuenta: 'claim' (aún sin dueño), 'keep' (misma cuenta)
+  // o 'wipe' (otra cuenta: no se deben subir a ésta).
+  function ownerAction(storedOwner, uid) {
+    if (!storedOwner) return 'claim';
+    return storedOwner === uid ? 'keep' : 'wipe';
+  }
+
+  const api = { isEmptyState, serializeState, deserializeRemote, decideSync, toFirestoreFields, fromFirestoreDoc, SYNC_INTERVAL_MS, shouldReadRemote, ownerAction };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Planner = Object.assign(root.Planner || {}, api);
 })(typeof window !== 'undefined' ? window : globalThis);

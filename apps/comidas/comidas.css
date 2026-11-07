@@ -11,6 +11,7 @@
   --btn-ink: #0a0a0a;
   --accent: #ffd60a;
   --accent-soft: #fff3b0;
+  --tab-ink: #8a6a00;
   --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.08);
   color-scheme: light;
 }
@@ -27,6 +28,7 @@
     --btn-ink: #0a0a0a;
     --accent: #ffd60a;
     --accent-soft: #2b2500;
+    --tab-ink: #ffd60a;
     --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
     color-scheme: dark;
   }
@@ -43,6 +45,7 @@
   --btn-ink: #0a0a0a;
   --accent: #ffd60a;
   --accent-soft: #2b2500;
+  --tab-ink: #ffd60a;
   --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
   color-scheme: dark;
 }
@@ -292,17 +295,19 @@ textarea.field { min-height: 120px; padding: 12px 16px; resize: vertical; line-h
 .hero p { color: var(--ink-2); margin: 0 auto 28px; max-width: 34ch; }
 .btn.big { min-height: 60px; padding: 0 44px; font-size: 18px; box-shadow: var(--shadow); }
 
-/* Barra inferior */
+/* Barra inferior flotante: una píldora separada de los bordes. Sigue dentro del flujo de la
+   pantalla (no superpuesta) para no depender de cómo iOS calcula la altura al abrir la app. */
 .tabbar {
   flex: none;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
-  /* Margen bajo los iconos mínimo: la barra queda pegada abajo (el indicador de inicio del
-     iPhone es una raya fina que se superpone sin tapar los iconos) */
-  padding: 4px 8px max(2px, calc(env(safe-area-inset-bottom) - 28px));
-  background: var(--bg);
-  border-top: 1px solid var(--line);
+  margin: 6px 16px max(10px, calc(env(safe-area-inset-bottom) - 10px));
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  box-shadow: var(--shadow);
 }
 .tabbar button {
   appearance: none;
@@ -313,15 +318,16 @@ textarea.field { min-height: 120px; padding: 12px 16px; resize: vertical; line-h
   align-items: center;
   justify-content: center;
   gap: 3px;
-  min-height: 50px;
-  border-radius: 14px;
+  min-height: 54px;
+  border-radius: 24px;
   color: var(--ink-3);
   font: 600 11px var(--sans);
   letter-spacing: .04em;
   cursor: pointer;
+  transition: background .2s ease, color .2s ease;
 }
 .tabbar svg { width: 24px; height: 24px; }
-.tabbar button.active { background: var(--btn-bg); color: var(--btn-ink); }
+.tabbar button.active { background: var(--accent-soft); color: var(--tab-ink); }
 
 /* Cabeceras de pantalla */
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
@@ -371,3 +377,7 @@ textarea.field { min-height: 120px; padding: 12px 16px; resize: vertical; line-h
 }
 .next-when { flex: none; width: 136px; white-space: nowrap; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
 .next-name { font-weight: 500; }
+
+.topbar-actions { display: flex; align-items: center; }
+.topbar-actions .spacer { width: 0; }
+#sync-now:disabled { opacity: .5; }

@@ -1,5 +1,5 @@
 // Cambia VERSION cuando modifiques archivos de la app para forzar la actualización.
-const VERSION = 'v25';
+const VERSION = 'v27';
 const CACHE = `mi-app-${VERSION}`;
 
 // Núcleo de la app. Los archivos de cada módulo se leen de apps.json (campos "path" y "files").
@@ -9,6 +9,9 @@ const SHELL = [
   'shared/styles.css',
   'shared/pwa.js',
   'shared/theme.js',
+  'shared/auth.js',
+  'shared/authcore.js',
+  'shared/firebase-config.js',
   'apps.json',
   'manifest.webmanifest',
   'icons/icon-192.png',
@@ -20,6 +23,12 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     await cache.addAll(SHELL);
+    // Módulos de Firebase Auth: así la comprobación de sesión también funciona sin conexión.
+    // El resto del SDK se guarda solo la primera vez que se usa. Si falla, no se cae la instalación.
+    await Promise.all([
+      'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js',
+      'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js'
+    ].map(u => cache.add(u).catch(() => {})));
     try {
       const res = await fetch('apps.json', { cache: 'no-store' });
       const apps = await res.json();
