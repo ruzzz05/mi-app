@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Marco de prueba de la puerta de entrada</title>
+<script src="../authcore.js"></script>
+<script>
+// Escenario de prueba, elegido con ?s=<nombre>. Sustituye Firebase y el almacenamiento por simulaciones
+// para provocar los casos que en el móvil dejaban la pantalla en negro.
+(function () {
+  const s = new URLSearchParams(location.search).get('s');
+
+  // localStorage propio de este marco (así los escenarios no se pisan entre sí)
+  const data = {};
+  window.__store = data;
+  Object.defineProperty(window, 'localStorage', { configurable: true, value: {
+    getItem: k => (k in data ? data[k] : null),
+    setItem: (k, v) => { data[k] = String(v); },
+    removeItem: k => { delete data[k]; },
+    key: i => Object.keys(data)[i] || null,
+    get length() { return Object.keys(data).length; }
+  } });
+
+  const never = new Promise(() => {});
+  const ana = { email: 'ana@mi-app.invalid', isAnonymous: false };
+  const calls = window.__calls = { signOut: 0, reload: 0 };
+
+  function fakeAuth(user, ready) {
+    const a = {
+      currentUser: user,
+      authStateReady: () => ready,
+      onAuthStateChanged(cb) { a.notify = cb; cb(a.currentUser); }
+    };
+    return a;
+  }
+  const sdk = { signOut: async () => { calls.signOut++; } };
+  const sdkWith = auth => () => Promise.resolve({ core: window.MiAuthCore, sdk, auth });
+
+  const remembered = ['stored-hang', 'stored-nouser', 'stored-sdk-fails', 'signout'];
+  if (remembered.includes(s)) data['miapp.session'] = 'ana';
+
+  const scenarios = {
+    'slow-sdk':         () => never,
+    'sdk-fails':        () => Promise.reject(new Error('sin red')),
+    'ok-user':          sdkWith(fakeAuth(ana, Promise.resolve())),
+    'ok-nouser':        sdkWith(fakeAuth(null, Promise.resolve())),
+    'session-hang':     sdkWith(window.__hangAuth = fakeAuth(null, never)),
+    'stored-hang':      () => never,
+    'stored-nouser':    sdkWith(fakeAuth(null, Promise.resolve())),
+    'stored-sdk-fails': () => Promise.reject(new Error('sin red')),
+    'signout':          sdkWith(fakeAuth(ana, Promise.resolve()))
+  };
+
+  window.MiAuthTest = {
+    loadSdk: scenarios[s],
+    timeoutMs: 300,
+    reload: () => { calls.reload++; }
+  };
+})();
+</script>
+<script src="../auth.js"></script>
+</head>
+<body>
+<p id="page">contenido de la app</p>
+<script>
+  window.__ready = false;
+  MiAuth.ready.then(() => { window.__ready = true; });
+</script>
+</body>
+</html>

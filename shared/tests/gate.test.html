@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Tests de la puerta de entrada (auth.js)</title></head>
+<body>
+<script src="../../tests/harness.js"></script>
+<script>
+// Cada escenario carga gate.frame.html en un iframe con un Firebase simulado y se mira qué ve la
+// persona: nunca debe quedarse una pantalla vacía o en negro, ni sin nada que hacer.
+const SCENARIOS = ['slow-sdk', 'sdk-fails', 'ok-user', 'ok-nouser', 'session-hang',
+                   'stored-hang', 'stored-nouser', 'stored-sdk-fails', 'signout'];
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+function look(frame) {
+  const w = frame.contentWindow, d = frame.contentDocument;
+  const o = d.querySelector('.auth-overlay');
+  return {
+    overlay: !!o,
+    text: o ? o.textContent : '',
+    form: !!d.getElementById('auth-user'),
+    retry: !!(o && /Reintentar/.test(o.textContent)),
+    hidden: getComputedStyle(d.documentElement).visibility === 'hidden',
+    pageThere: !!d.getElementById('page'),
+    ready: w.__ready,
+    flag: w.__store['miapp.session'] || null,
+    calls: Object.assign({}, w.__calls)
+  };
+}
+
+(async function () {
+  const frames = {};
+  await Promise.all(SCENARIOS.map(s => new Promise(res => {
+    const f = document.createElement('iframe');
+    f.src = 'gate.frame.html?s=' + s;
+    f.onload = res;
+    document.body.appendChild(f);
+    frames[s] = f;
+  })));
+
+  // Antes del límite de tiempo (300 ms en el marco)
+  await wait(100);
+  const early = {};
+  SCENARIOS.forEach(s => { early[s] = look(frames[s]); });
+
+  // Después del límite
+  await wait(500);
+  const late = {};
+  SCENARIOS.forEach(s => { late[s] = look(frames[s]); });
+
+  // Acciones: una sesión que llega tarde, y cerrar sesión
+  frames['session-hang'].contentWindow.__hangAuth.notify({ email: 'ana@mi-app.invalid', isAnonymous: false });
+  await frames['signout'].contentWindow.MiAuth.signOut();
+  await wait(50);
+  const afterLate = look(frames['session-hang']);
+  const afterSignOut = look(frames['signout']);
+
+  // ---- Sin sesión conocida ----
+  test('sin sesión conocida y Firebase tardando: se ve "Cargando", no una pantalla vacía', () => {
+    assert.ok(early['slow-sdk'].overlay, 'tendría que haber una pantalla de carga');
+    assert.ok(/Cargando/.test(early['slow-sdk'].text), early['slow-sdk'].text);
+    assert.eq(early['slow-sdk'].hidden, false, 'la página no debe quedar oculta/en negro');
+  });
+
+  test('sin sesión conocida y Firebase sin cargar tras el límite: aviso con "Reintentar"', () => {
+    assert.ok(late['slow-sdk'].retry, late['slow-sdk'].text);
+    assert.ok(/tardando/.test(late['slow-sdk'].text), late['slow-sdk'].text);
+  });
+
+  test('la pantalla de carga dice en qué paso está y cuántos segundos lleva', () => {
+    assert.ok(/Cargando Firebase · \d+ s/.test(late['slow-sdk'].text), late['slow-sdk'].text);
+  });
+
+  test('sin sesión conocida y la sesión no responde tras el límite: se puede entrar de nuevo', () => {
+    assert.ok(late['session-hang'].form, 'tendría que verse el formulario de entrada');
+    assert.ok(/a tiempo/.test(late['session-hang'].text), late['session-hang'].text);
+  });
+
+  test('si la sesión llega tarde, el login se quita solo y se ve la app', () => {
+    assert.eq(afterLate.overlay, false);
+    assert.eq(afterLate.ready, true);
+    assert.eq(afterLate.flag, 'ana');
+  });
+
+  test('si falla la carga de Firebase sin sesión conocida: aviso con "Reintentar"', () => {
+    assert.ok(early['sdk-fails'].retry, early['sdk-fails'].text);
+  });
+
+  test('con sesión válida: se quita la pantalla, la app queda visible y se recuerda el usuario', () => {
+    assert.eq(early['ok-user'].overlay, false);
+    assert.eq(early['ok-user'].ready, true);
+    assert.eq(early['ok-user'].flag, 'ana');
+    assert.eq(early['ok-user'].hidden, false);
+    assert.eq(early['ok-user'].pageThere, true);
+  });
+
+  test('sin sesión: se muestra el formulario de entrada y no se recuerda a nadie', () => {
+    assert.ok(early['ok-nouser'].form);
+    assert.eq(early['ok-nouser'].flag, null);
+    assert.eq(early['ok-nouser'].ready, false, 'sin sesión la app no debe darse por lista');
+  });
+
+  // ---- Con sesión conocida en este dispositivo ----
+  test('con sesión conocida y Firebase tardando: la app se ve al instante, sin tapar', () => {
+    assert.eq(early['stored-hang'].overlay, false);
+    assert.eq(early['stored-hang'].hidden, false);
+    assert.eq(late['stored-hang'].overlay, false, 'tampoco tras el límite de tiempo');
+  });
+
+  test('con sesión conocida pero sin sesión real: aparece el login y se olvida la marca', () => {
+    assert.ok(late['stored-nouser'].form);
+    assert.eq(late['stored-nouser'].flag, null);
+  });
+
+  test('con sesión conocida y Firebase sin cargar (p. ej. sin conexión): la app sigue usable', () => {
+    assert.eq(late['stored-sdk-fails'].overlay, false);
+    assert.eq(late['stored-sdk-fails'].hidden, false);
+  });
+
+  test('cerrar sesión: se olvida el usuario, se cierra en Firebase y se recarga', () => {
+    assert.eq(afterSignOut.flag, null);
+    assert.eq(afterSignOut.calls.signOut, 1);
+    assert.eq(afterSignOut.calls.reload, 1);
+  });
+
+  test('en ningún escenario queda la página oculta (visibility:hidden)', () => {
+    SCENARIOS.forEach(s => {
+      assert.eq(early[s].hidden, false, s + ' (antes)');
+      assert.eq(late[s].hidden, false, s + ' (después)');
+    });
+  });
+
+  test('en ningún escenario sin sesión confirmada se queda sin nada que ver o hacer', () => {
+    ['slow-sdk', 'sdk-fails', 'ok-nouser', 'session-hang'].forEach(s => {
+      assert.ok(early[s].overlay && late[s].overlay, s + ': tendría que haber siempre una pantalla encima');
+    });
+  });
+
+  finish();
+})();
+</script>
+</body>
+</html>

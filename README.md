@@ -23,7 +23,7 @@ mi-app/
 │   ├── auth.js             Puerta de entrada: pide usuario y contraseña (va en todas las páginas)
 │   ├── authcore.js         Lógica de las cuentas (validar usuario, mensajes), sin red
 │   ├── firebase-config.js  Datos de conexión de Firebase (los usan todas las apps)
-│   ├── tests/              Tests de authcore.js
+│   ├── tests/              Tests de authcore.js y de la puerta de entrada (gate.test.html)
 │   └── theme.js            Botón de modo claro/oscuro (lo inserta solo)
 │
 ├── apps/                 Una carpeta por app, todo autocontenido
@@ -61,7 +61,7 @@ mi-app/
 
 ## Cuentas
 
-Toda la app exige una sesión (usuario y contraseña, con Firebase Auth). `shared/auth.js` oculta la página, carga Firebase y muestra el login hasta que hay sesión; la sesión se guarda en el navegador y vale para todas las apps. Internamente el usuario se convierte en `usuario@mi-app.invalid`, así que **no hay recuperación de contraseña**: si alguien la olvida, hay que borrar su cuenta en la consola de Firebase (Authentication → Users). Los datos de Mi-Menu se guardan por cuenta y se leen de la nube como mucho una vez cada 24 h (botón "Sincronizar ahora" para forzarlo). Los CSV y demás archivos estáticos siguen siendo públicos (GitHub Pages); solo los datos de Firestore quedan protegidos por las reglas.
+Toda la app exige una sesión (usuario y contraseña, con Firebase Auth). `shared/auth.js` oculta la página, carga Firebase y muestra el login hasta que hay sesión; la sesión se guarda en el navegador y vale para todas las apps. Internamente el usuario se convierte en `usuario@mi-app.invalid`, así que **no hay recuperación de contraseña**: si alguien la olvida, hay que borrar su cuenta en la consola de Firebase (Authentication → Users). Nunca deja la pantalla en negro: mientras comprueba la sesión muestra "Cargando…" (con el paso y los segundos) y, si tarda, ofrece entrar de nuevo o reintentar; si ya iniciaste sesión en ese dispositivo, la app se ve al instante. Los datos de Mi-Menu se guardan por cuenta y se leen de la nube como mucho una vez cada 24 h (botón "Sincronizar ahora" para forzarlo). Los CSV y demás archivos estáticos siguen siendo públicos (GitHub Pages); solo los datos de Firestore quedan protegidos por las reglas.
 
 ---
 
