@@ -42,7 +42,8 @@
     return gsiPromise;
   }
 
-  function requestToken() {
+  // prompt: '' (puede abrir una ventana), 'consent' (pide confirmar) o 'none' (sin ventana: solo funciona si ya diste permiso)
+  function requestToken(prompt) {
     return new Promise((resolve, reject) => {
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: CFG.clientId,
@@ -54,7 +55,7 @@
           ? 'Cerraste la ventana de Google antes de terminar'
           : 'No se pudo abrir la ventana de Google' + (e && e.type ? ' (' + e.type + ')' : '')))
       });
-      client.requestAccessToken({ prompt: store.get(CONNECTED_KEY) ? '' : 'consent' });
+      client.requestAccessToken({ prompt: prompt == null ? (store.get(CONNECTED_KEY) ? '' : 'consent') : prompt });
     });
   }
 
@@ -124,6 +125,34 @@
     }
   }
 
+
+  // ---------- Sincronización automática ----------
+  // Al abrir la app (y al volver a ella) se actualizan los datos sin pulsar nada. Si el token caducó
+  // pero ya diste permiso alguna vez, se pide uno nuevo SIN ventana (prompt "none"); si Google no lo
+  // concede así, queda el botón "Volver a conectar" (una ventana necesita un toque tuyo).
+  const SILENT_EVERY_MS = 5 * 60 * 1000;
+  let lastSilent = 0;
+
+  async function silentConnect() {
+    if (!store.get(CONNECTED_KEY) || token() || Date.now() - lastSilent < SILENT_EVERY_MS) return;
+    lastSilent = Date.now();
+    loading = true;
+    changed();
+    let t = null;
+    try { await loadGsi(); t = await requestToken('none'); store.set(TOKEN_KEY, t); }
+    catch (err) { console.warn('Google Health (sin ventana):', err); }
+    loading = false;
+    if (t) await refresh({ force: true }); else changed();
+  }
+
+  function autoSync() {
+    if (!CFG.clientId) return;
+    lastError = ''; // una apertura nueva siempre vuelve a intentarlo (una vez)
+    if (token()) refresh(); else silentConnect();
+  }
+
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoSync(); });
+
   // kind: sin-config | cargando | error | datos | caducado (hay permiso guardado de otra vez) | sin-conectar
   function state() {
     const cache = store.get(CACHE_KEY);
@@ -137,5 +166,7 @@
     return { kind, error: lastError, summary, connected: !!token() };
   }
 
-  A.health = { state, connect, refresh, preload: () => { if (CFG.clientId) loadGsi().catch(() => {}); } };
+  A.health = { state, connect, refresh, autoSync, preload: () => { if (CFG.clientId) loadGsi().catch(() => {}); } };
+
+  autoSync(); // al abrir la app
 })();

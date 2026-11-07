@@ -31,7 +31,7 @@
 
     el.innerHTML = `
       <div class="screen-head"><h2>Compra</h2></div>
-      ${C.state.menu ? '' : '<p class="sub">Confirma un menú y aquí aparecerá la lista de la semana.</p>'}
+      ${C.state.menu ? '' : '<p class="sub">Crea un menú y aquí aparecerá la lista de la semana.</p>'}
       <div class="add-row">
         <input id="add-name" class="field" type="text" placeholder="Añadir producto" autocomplete="off">
         <input id="add-qty" class="field qty-in" type="text" inputmode="decimal" value="1" aria-label="Cantidad">

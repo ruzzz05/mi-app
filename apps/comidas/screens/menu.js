@@ -1,4 +1,4 @@
-// Pantalla Menú: crear, revisar el borrador, confirmar y editar el menú.
+// Pantalla Menú: crear y editar el menú. Un menú nuevo queda activo al crearlo (no hay paso de confirmar).
 (() => {
   const C = window.Comidas;
   const P = window.Planner;
@@ -12,10 +12,20 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  const which = () => (C.state.draft ? 'draft' : (C.state.menu ? 'menu' : null));
+  // Antes el menú nuevo era un borrador que había que confirmar. Si queda alguno guardado (en el móvil
+  // o recuperado de la nube), pasa a ser el menú activo.
+  C.promoteDraft = () => {
+    if (!C.state.draft) return;
+    if (!C.state.menu) { C.state.menu = C.state.draft; C.state.list = P.emptyList(); }
+    C.state.draft = null;
+    C.save();
+  };
+
+  const which = () => (C.state.menu ? 'menu' : null);
 
   function render(el) {
     el.onclick = null;
+    C.promoteDraft();
     if (!C.state.dishes.length) {
       el.innerHTML = `<div class="hero"><h2>Primero, tus recetas</h2>
         <p>Para crear un menú necesito conocer los platos que sabes preparar.</p>
@@ -74,15 +84,16 @@
       }
       const menu = P.newMenu({ dishes: C.state.dishes, days, startDate, firstMeal });
       if (!Object.keys(menu.plan).length) { C.toast('No he podido montar el menú'); return; }
-      C.state.draft = menu;
-      C.save(); C.render();
+      C.state.menu = menu;
+      C.state.draft = null;
+      C.state.list = P.emptyList();
+      C.save(); C.go('hoy'); C.toast('Menú creado');
     };
   }
 
   // ---------- Ver y editar ----------
   function renderPlan(el, w) {
     const m = C.state[w];
-    const isDraft = w === 'draft';
     const keys = P.slotKeys(m);
 
     const days = [];
@@ -99,15 +110,11 @@
     }
 
     el.innerHTML = `
-      <div class="screen-head"><h2>${isDraft ? 'Borrador del menú' : 'Tu menú'}</h2></div>
-      <p class="sub">${m.days} ${m.days === 1 ? 'día' : 'días'} desde ${dayLabel(m.startDate, 0).toLowerCase()}${isDraft ? '. Revísalo y confírmalo.' : '.'}</p>
-      ${isDraft ? '<button class="btn big" type="button" data-act="confirm" style="width:100%;margin-bottom:12px">Confirmar menú</button>' : ''}
+      <div class="screen-head"><h2>Tu menú</h2></div>
+      <p class="sub">${m.days} ${m.days === 1 ? 'día' : 'días'} desde ${dayLabel(m.startDate, 0).toLowerCase()}.</p>
       <div class="toolbar">
-        ${isDraft
-          ? `<button class="btn ghost" type="button" data-act="regen-all">Regenerar todo</button>
-             <button class="btn ghost" type="button" data-act="discard">Descartar</button>`
-          : `<button class="btn ghost" type="button" data-act="fill">Rellenar huecos</button>
-             <button class="btn ghost" type="button" data-act="new">Menú nuevo</button>`}
+        <button class="btn ghost" type="button" data-act="fill">Rellenar huecos</button>
+        <button class="btn ghost" type="button" data-act="new">Menú nuevo</button>
       </div>
       ${days.join('')}`;
 
@@ -121,14 +128,8 @@
       const day = +b.dataset.day;
       if (a === 'slot') openSlot(w, day, b.dataset.slot);
       else if (a === 'regen-day') set(P.regenerateDay({ ...ctx(), day }));
-      else if (a === 'regen-all') set(P.newMenu({ dishes: C.state.dishes, days: m.days, startDate: m.startDate, firstMeal: m.firstMeal, exclusions: m.exclusions }));
       else if (a === 'fill') { set(P.fillMenu(ctx())); C.toast('Huecos rellenados'); }
-      else if (a === 'confirm') {
-        C.state.menu = C.state.draft; C.state.draft = null; C.state.list = P.emptyList();
-        C.save(); C.go('hoy'); C.toast('Menú confirmado');
-      } else if (a === 'discard') {
-        if (confirm('¿Descartar este borrador?')) { C.state.draft = null; C.save(); C.render(); }
-      } else if (a === 'new') {
+      else if (a === 'new') {
         if (confirm('¿Crear un menú nuevo? Se perderá el actual y los cambios de la lista de la compra.')) {
           C.state.menu = null; C.state.list = P.emptyList(); C.save(); C.render();
         }

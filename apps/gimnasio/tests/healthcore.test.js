@@ -31,10 +31,10 @@ test('tokenValid: vale hasta un minuto antes de caducar', () => {
   assert.eq(H.tokenValid(null, now), false);
 });
 
-test('summaryFresh: mismo día y menos de 10 minutos', () => {
+test('summaryFresh: mismo día y menos de 2 minutos', () => {
   const now = new Date(2026, 1, 10, 12, 0).getTime();
-  assert.eq(H.summaryFresh({ day: '2026-02-10', at: now - 5 * 60000 }, '2026-02-10', now), true);
-  assert.eq(H.summaryFresh({ day: '2026-02-10', at: now - 11 * 60000 }, '2026-02-10', now), false);
+  assert.eq(H.summaryFresh({ day: '2026-02-10', at: now - 60000 }, '2026-02-10', now), true);
+  assert.eq(H.summaryFresh({ day: '2026-02-10', at: now - 3 * 60000 }, '2026-02-10', now), false);
   assert.eq(H.summaryFresh({ day: '2026-02-09', at: now - 1000 }, '2026-02-10', now), false);
   assert.eq(H.summaryFresh(null, '2026-02-10', now), false);
 });

@@ -20,14 +20,11 @@
   };
 
   function render(el) {
+    if (C.promoteDraft) C.promoteDraft(); // un borrador antiguo pasa a ser el menú activo
     const v = P.todayView({ menu: C.state.menu, now: new Date() });
     el.onclick = e => { const b = e.target.closest('[data-go]'); if (b) C.go(b.dataset.go); };
 
-    if (v.status === 'none' && C.state.draft) {
-      el.innerHTML = `<div class="hero"><h2>Tu menú está sin confirmar</h2>
-        <p>Has creado un menú pero aún no lo has confirmado. Confírmalo y aquí verás qué te toca cada día.</p>
-        <button class="btn big" type="button" data-go="menu">Revisar y confirmar</button></div>`;
-    } else if (v.status === 'none') {
+    if (v.status === 'none') {
       el.innerHTML = `<div class="hero"><h2>Todavía no tienes menú</h2>
         <p>Crea uno y aquí verás qué te toca comer y cenar cada día.</p>
         <button class="btn big" type="button" data-go="${C.state.dishes.length ? 'menu' : 'recetas'}">${C.state.dishes.length ? 'Crear menú' : 'Añadir recetas'}</button></div>`;

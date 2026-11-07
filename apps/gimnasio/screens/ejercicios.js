@@ -41,7 +41,7 @@
   const PAGE = 60;
 
   function pickExercise(onPick) {
-    const list = h('div', null);
+    const list = h('div', { class: 'pick-list' });
     const info = h('p', { class: 'hint' });
 
     function renderList() {
@@ -65,7 +65,8 @@
       h('option', { value: '' }, firstLabel),
       entries.map(([k, label]) => h('option', { value: k, selected: k === current }, label)));
 
-    A.openSheet('Añadir ejercicio', [
+    // Buscador y filtros fijos arriba; solo la lista se desliza
+    A.openSheet('Añadir ejercicio', h('div', { class: 'pick-wrap' },
       h('input', {
         class: 'field', type: 'search', placeholder: 'Buscar ejercicio…', value: pickState.query,
         'aria-label': 'Buscar ejercicio', oninput: e => { pickState.query = e.target.value; renderList(); }
@@ -73,8 +74,7 @@
       h('div', { class: 'pick-filters' },
         select(pickState.muscle, 'Todos los músculos', Object.entries(CAT.muscles), v => { pickState.muscle = v; renderList(); }),
         select(pickState.equip, 'Todo el equipo', Object.entries(CAT.equipment), v => { pickState.equip = v; renderList(); })),
-      info, list
-    ]);
+      info, list), { tall: true });
     renderList();
   }
 

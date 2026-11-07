@@ -132,8 +132,10 @@
     },
 
     // node: un elemento (o varios en un array) para el cuerpo de la hoja
-    openSheet(title, node) {
+    // opts.tall: la hoja ocupa siempre el mismo alto (el buscador, para que no baje al haber pocos resultados)
+    openSheet(title, node, opts) {
       $('sheet-title').textContent = title;
+      $('sheet').querySelector('.sheet-panel').classList.toggle('tall', !!(opts && opts.tall));
       const body = $('sheet-body');
       body.replaceChildren(...[].concat(node).flat(Infinity).filter(Boolean));
       $('sheet').classList.add('open');
@@ -166,7 +168,25 @@
 
     current: () => current,
 
+    // Con el teclado abierto en el móvil, la hoja se ajusta a la parte VISIBLE de la pantalla (si no,
+    // se queda detrás del teclado). vv = window.visualViewport.
+    fitSheet(vv) {
+      const s = $('sheet');
+      if (vv && vv.height < window.innerHeight - 80) {
+        s.style.top = vv.offsetTop + 'px';
+        s.style.height = vv.height + 'px';
+      } else {
+        s.style.top = '';
+        s.style.height = '';
+      }
+    },
+
     start() {
+      if (window.visualViewport) {
+        const fit = () => App.fitSheet(window.visualViewport);
+        window.visualViewport.addEventListener('resize', fit);
+        window.visualViewport.addEventListener('scroll', fit);
+      }
       $('sheet-close').onclick = App.closeSheet;
       $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) App.closeSheet(); });
       document.querySelectorAll('.tabbar button').forEach(b => { b.onclick = () => App.go(b.dataset.screen); });

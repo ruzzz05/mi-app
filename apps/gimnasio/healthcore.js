@@ -1,6 +1,6 @@
 // Lógica pura de la conexión con Google Health (sin red ni DOM). Se prueba en apps/gimnasio/tests.
 (function (root) {
-  const FRESH_MS = 10 * 60 * 1000;   // un resumen de menos de 10 minutos no se vuelve a pedir
+  const FRESH_MS = 2 * 60 * 1000;    // un resumen de menos de 2 minutos no se vuelve a pedir
   const TOKEN_MARGIN_MS = 60 * 1000; // el token se da por caducado un minuto antes
 
   // Desde la medianoche local de hoy hasta la de mañana, en formato ISO con zona horaria (UTC)
