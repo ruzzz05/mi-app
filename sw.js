@@ -1,6 +1,11 @@
 // Cambia VERSION cuando modifiques archivos de la app para forzar la actualización.
-const VERSION = 'v32';
+const VERSION = 'v40';
 const CACHE = `mi-app-${VERSION}`;
+
+// Imágenes de ejercicios (Gimnasio): caché aparte que NO se borra al actualizar la app (la versión de
+// las imágenes está fijada y nunca cambian) y con tope para no llenar el móvil.
+const IMG_CACHE = 'gym-img';
+const IMG_MAX = 250;
 
 // Núcleo de la app. Los archivos de cada módulo se leen de apps.json (campos "path" y "files").
 const SHELL = [
@@ -11,6 +16,7 @@ const SHELL = [
   'shared/theme.js',
   'shared/auth.js',
   'shared/authcore.js',
+  'shared/synccore.js',
   'shared/firebase-config.js',
   'apps.json',
   'manifest.webmanifest',
@@ -43,7 +49,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== IMG_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -74,6 +80,19 @@ async function staleWhileRevalidate(request) {
   return cached || refresh;
 }
 
+async function cachedImage(request) {
+  const cache = await caches.open(IMG_CACHE);
+  const hit = await cache.match(request);
+  if (hit) return hit;
+  const res = await fetch(request);
+  if (res.ok) {
+    await cache.put(request, res.clone());
+    const keys = await cache.keys(); // en orden de llegada: se borran las más antiguas
+    for (let i = 0; i < keys.length - IMG_MAX; i++) await cache.delete(keys[i]);
+  }
+  return res;
+}
+
 self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -84,6 +103,12 @@ self.addEventListener('fetch', event => {
   // Páginas y datos: red primero (ves los cambios al recargar), caché si no hay conexión.
   if (sameOrigin && (request.mode === 'navigate' || url.pathname.endsWith('.csv') || url.pathname.endsWith('.html') || url.pathname.endsWith('.json'))) {
     event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // Imágenes de los ejercicios: caché primero (no cambian), con tope.
+  if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/free-exercise-db@')) {
+    event.respondWith(cachedImage(request));
     return;
   }
 

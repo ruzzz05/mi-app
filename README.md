@@ -23,7 +23,8 @@ mi-app/
 │   ├── auth.js             Puerta de entrada: pide usuario y contraseña (va en todas las páginas)
 │   ├── authcore.js         Lógica de las cuentas (validar usuario, mensajes), sin red
 │   ├── firebase-config.js  Datos de conexión de Firebase (los usan todas las apps)
-│   ├── tests/              Tests de authcore.js y de la puerta de entrada (gate.test.html)
+│   ├── synccore.js         Reglas de sincronización con la nube comunes (24 h, dueño de los datos, formato Firestore)
+│   ├── tests/              Tests de authcore.js, synccore.js y de la puerta de entrada (gate.test.html)
 │   └── theme.js            Botón de modo claro/oscuro (lo inserta solo)
 │
 ├── apps/                 Una carpeta por app, todo autocontenido
@@ -39,16 +40,25 @@ mi-app/
 │   │   ├── yonunca.csv     Preguntas de Yo nunca
 │   │   └── ask.csv         Preguntas de Ask
 │   │
-│   └── comidas/          Mi-Menu: menú, qué toca hoy y lista de la compra
+│   ├── comidas/          Mi-Menu: menú, qué toca hoy y lista de la compra
+│   │   ├── index.html
+│   │   ├── comidas.css     Tema blanco y amarillo
+│   │   ├── core.js         Estado guardado, navegación, avisos
+│   │   ├── screens/        Una pantalla por archivo: hoy, menu, compra, recetas
+│   │   ├── recipes.js      Lógica: cantidades, ingredientes, migración
+│   │   ├── planner.js      Lógica: crear y editar el menú, puntuación
+│   │   ├── shopping.js     Lógica: lista de la compra
+│   │   ├── schedule.js     Lógica: hora, inicio propuesto, vista de Hoy
+│   │   └── tests/          Tests de la lógica
+│   │
+│   └── gimnasio/         Gimnasio: rutinas, entrenos y estadísticas
 │       ├── index.html
-│       ├── comidas.css     Tema blanco y amarillo
+│       ├── gym.css         Tema blanco y naranja
 │       ├── core.js         Estado guardado, navegación, avisos
-│       ├── screens/        Una pantalla por archivo: hoy, menu, compra, recetas
-│       ├── recipes.js      Lógica: cantidades, ingredientes, migración
-│       ├── planner.js      Lógica: crear y editar el menú, puntuación
-│       ├── shopping.js     Lógica: lista de la compra
-│       ├── schedule.js     Lógica: hora, inicio propuesto, vista de Hoy
-│       └── tests/          Tests de la lógica
+│       ├── screens/        Una pantalla por archivo: perfil, rutinas…
+│       ├── gymcore.js      Lógica: estadísticas, copia del entreno, compartir rutinas
+│       ├── exercises.js    Catálogo de ejercicios en español (ver tools/build-catalog.md)
+│       └── tests/          Tests de la lógica y del catálogo
 │
 └── tests/          Tests de planner.js
 │
@@ -64,6 +74,30 @@ mi-app/
 Toda la app exige una sesión (usuario y contraseña, con Firebase Auth). `shared/auth.js` oculta la página, carga Firebase y muestra el login hasta que hay sesión; la sesión se guarda en el navegador y vale para todas las apps. Internamente el usuario se convierte en `usuario@mi-app.invalid`, así que **no hay recuperación de contraseña**: si alguien la olvida, hay que borrar su cuenta en la consola de Firebase (Authentication → Users). Nunca deja la pantalla en negro: mientras comprueba la sesión muestra "Cargando…" (con el paso y los segundos) y, si tarda, ofrece entrar de nuevo o reintentar; si ya iniciaste sesión en ese dispositivo, la app se ve al instante. Los datos de Mi-Menu se guardan por cuenta y se leen de la nube como mucho una vez cada 24 h (botón "Sincronizar ahora" para forzarlo). Los CSV y demás archivos estáticos siguen siendo públicos (GitHub Pages); solo los datos de Firestore quedan protegidos por las reglas.
 
 ---
+
+### Datos del Gimnasio y reglas de Firestore
+
+El Gimnasio guarda tus rutinas en `users/{uid}/gym/config` y tus entrenos en `users/{uid}/gymlogs/{AAAA-MM}` (un documento por mes, para no acercarse al límite de 1 MB). Los entrenos de dos móviles se fusionan por id, así que no se pierde ninguno. Hay que **pegar estas reglas en Firestore → Reglas** (sustituyen a las anteriores; incluyen el documento de Mi-Menu):
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      match /{sub=**} {
+        allow read, write: if request.auth != null
+          && request.auth.uid == uid
+          && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      }
+    }
+  }
+}
+```
+
+Para comprobar que se sube: Firestore → Datos → `users` → tu UID (Authentication → Users) → deben aparecer `gym/config` y `gymlogs/AAAA-MM`. El catálogo de ejercicios (`apps/gimnasio/exercises.js`) viene de free-exercise-db; cómo se generó está en `tools/build-catalog.md`. Las imágenes se piden bajo demanda a jsDelivr.
 
 ## Cómo encaja todo
 

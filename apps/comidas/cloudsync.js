@@ -28,44 +28,20 @@
 
   // 'upload' (la local gana), 'adopt' (gana la de la nube) o 'none'.
   function decideSync({ local, remote }) {
-    const hasRemote = !!deserializeRemote(remote);
-    const empty = isEmptyState(local);
-    if (!hasRemote) return empty ? 'none' : 'upload';
-    if (empty) return 'adopt';
-    if (remote.updatedAt > local.updatedAt) return 'adopt';
-    if (remote.updatedAt < local.updatedAt) return 'upload';
-    return 'none';
+    return S.decideDoc({
+      localEmpty: isEmptyState(local),
+      localUpdatedAt: local.updatedAt,
+      remote: deserializeRemote(remote) ? remote : null
+    });
   }
 
-  // Traducción al formato de la API REST de Firestore (y de vuelta).
-  function toFirestoreFields(data) {
-    return { fields: { updatedAt: { integerValue: String(data.updatedAt) }, json: { stringValue: data.json } } };
-  }
+  // Las reglas generales (qué copia gana, lecturas como mucho cada 24 h, dueño de los datos y el
+  // formato de Firestore) están en shared/synccore.js, que se carga antes que este archivo.
+  const S = root.SyncCore;
+  const { toFirestoreFields, fromFirestoreDoc, ownerAction, SYNC_INTERVAL_MS } = S;
 
-  function fromFirestoreDoc(doc) {
-    const f = doc && doc.fields;
-    if (!f || !f.updatedAt || !f.json) return null;
-    const updatedAt = Number(f.updatedAt.integerValue);
-    if (!Number.isFinite(updatedAt) || typeof f.json.stringValue !== 'string') return null;
-    return { updatedAt, json: f.json.stringValue };
-  }
-
-  // Como mucho una lectura de la nube cada 24 h, salvo que no haya datos locales, no haya
-  // constancia de una lectura anterior (o el reloj esté adelantado) o se fuerce.
-  const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
-
-  function shouldReadRemote({ local, lastSyncAt, now, force }) {
-    if (force || isEmptyState(local)) return true;
-    if (!Number.isFinite(lastSyncAt) || lastSyncAt <= 0 || lastSyncAt > now) return true;
-    return now - lastSyncAt >= SYNC_INTERVAL_MS;
-  }
-
-  // Los datos locales pertenecen a una cuenta: 'claim' (aún sin dueño), 'keep' (misma cuenta)
-  // o 'wipe' (otra cuenta: no se deben subir a ésta).
-  function ownerAction(storedOwner, uid) {
-    if (!storedOwner) return 'claim';
-    return storedOwner === uid ? 'keep' : 'wipe';
-  }
+  const shouldReadRemote = ({ local, lastSyncAt, now, force }) =>
+    S.shouldReadRemote({ isEmpty: isEmptyState(local), lastSyncAt, now, force });
 
   const api = { isEmptyState, serializeState, deserializeRemote, decideSync, toFirestoreFields, fromFirestoreDoc, SYNC_INTERVAL_MS, shouldReadRemote, ownerAction };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

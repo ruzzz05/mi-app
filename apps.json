@@ -40,5 +40,25 @@
       "apps/comidas/cloudsync.js",
       "apps/comidas/cloud.js"
     ]
+  },
+  {
+    "id": "gimnasio",
+    "name": "Gimnasio",
+    "description": "Rutinas, entrenos y estadísticas por ejercicio y músculo.",
+    "path": "apps/gimnasio/index.html",
+    "accent": "#ff6b35",
+    "files": [
+      "apps/gimnasio/gym.css",
+      "apps/gimnasio/gymcore.js",
+      "apps/gimnasio/exercises.js",
+      "apps/gimnasio/core.js",
+      "apps/gimnasio/screens/ejercicios.js",
+      "apps/gimnasio/screens/editar.js",
+      "apps/gimnasio/screens/usar.js",
+      "apps/gimnasio/screens/perfil.js",
+      "apps/gimnasio/screens/rutinas.js",
+      "apps/gimnasio/main.js",
+      "apps/gimnasio/cloud.js"
+    ]
   }
 ]

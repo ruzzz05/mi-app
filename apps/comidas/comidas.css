@@ -50,6 +50,24 @@
   color-scheme: dark;
 }
 
+/* Tercer modo, cálido: fondo crema anaranjado (#FFDAA6) con detalles en marrón chocolate. */
+:root[data-theme="warm"] {
+  --bg: #FFDAA6;
+  --surface: #FFE9CC;
+  --surface-2: #FFE3BD;
+  --ink: #2b1a10;
+  --ink-2: #5a3b27;
+  --ink-3: #7a5236;
+  --line: #E2B987;
+  --btn-bg: #2b1a10;
+  --btn-ink: #FFDAA6;
+  --accent: #FFDAA6;
+  --accent-soft: #FFF1DB;
+  --tab-ink: #2b1a10;
+  --shadow: 0 1px 2px rgba(80,40,10,.10), 0 8px 24px rgba(80,40,10,.14);
+  color-scheme: light;
+}
+
 /* La app ocupa exactamente la pantalla (no depende de vh/dvh, que iOS calcula mal al abrir
    una app instalada) y solo se desplaza el contenido, nunca la página entera. */
 html { height: 100%; overflow: hidden; background: var(--bg); }
