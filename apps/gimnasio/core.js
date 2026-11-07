@@ -6,8 +6,8 @@
   const G = window.Gym;
   const CAT = window.GymCatalog;
   const KEY = 'gimnasio.v1';
-  const NAMES = ['perfil', 'rutinas', 'editar', 'usar'];
-  const MAIN = ['perfil', 'rutinas']; // pantallas con barra inferior
+  const NAMES = ['hoy', 'rutinas', 'perfil', 'editar', 'usar'];
+  const MAIN = ['hoy', 'rutinas', 'perfil']; // pantallas con barra inferior, en el orden de la barra
 
   const $ = id => document.getElementById(id);
 
@@ -112,12 +112,12 @@
     adoptState(next) {
       App.state = normalize(next);
       App.save({ touch: false });
-      App.go(current && screens[current] && MAIN.includes(current) ? current : 'rutinas');
+      App.go(current && screens[current] && MAIN.includes(current) ? current : 'hoy');
     },
 
     // Borra los datos guardados en este móvil (los usa cloud.js cuando entra otra cuenta)
     clearLocal() {
-      ['gimnasio.v1', 'gimnasio.active'].forEach(k => {
+      ['gimnasio.v1', 'gimnasio.active', 'gimnasio.hoy', 'gimnasio.google.token', 'gimnasio.google.connected'].forEach(k => {
         try { localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ }
       });
       App.adoptState(emptyState());
@@ -171,7 +171,7 @@
       $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) App.closeSheet(); });
       document.querySelectorAll('.tabbar button').forEach(b => { b.onclick = () => App.go(b.dataset.screen); });
       document.addEventListener('keydown', e => { if (e.key === 'Escape') App.closeSheet(); });
-      App.go(App.afterStart ? App.afterStart() : 'rutinas');
+      App.go(App.afterStart ? App.afterStart() : 'hoy');
     }
   };
 })();

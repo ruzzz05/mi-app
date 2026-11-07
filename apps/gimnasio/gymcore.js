@@ -124,6 +124,22 @@
     return cells;
   }
 
+  // Resumen de los entrenos de un día ('AAAA-MM-DD'): cuántos, series hechas, duración, volumen y nombres.
+  function todaySummary(sessions, day) {
+    const out = { count: 0, sets: 0, durationSec: 0, volume: 0, names: [] };
+    for (const s of live(sessions)) {
+      if (dayOf(s.startedAt) !== day) continue;
+      const sets = (s.exercises || []).reduce((n, ex) => n + doneSets(ex).length, 0);
+      if (!sets) continue;
+      out.count++;
+      out.sets += sets;
+      out.durationSec += num(s.durationSec);
+      out.volume += sessionVolume(s);
+      out.names.push(s.routineName || 'Entreno');
+    }
+    return out;
+  }
+
   // ---------- Fusión del historial de un mes ----------
   function mergeMonthLogs(local, remote) {
     const byId = new Map();
@@ -203,7 +219,7 @@
 
   const api = {
     epley1RM, sessionVolume, elapsedSec, startSession, finishSession, exerciseHistory,
-    weeklyMuscleSets, calendarCells, mergeMonthLogs, hasNewer, isValidSession, isValidRoutine, monthKey, exportRoutine, importRoutine,
+    weeklyMuscleSets, todaySummary, calendarCells, mergeMonthLogs, hasNewer, isValidSession, isValidRoutine, monthKey, exportRoutine, importRoutine,
     dayOf, addDays, mondayOf, uid
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -37,21 +37,26 @@
 
   <div class="scroller">
     <main class="wrap">
-      <section id="screen-perfil" class="hidden"></section>
+      <section id="screen-hoy" class="hidden"></section>
       <section id="screen-rutinas" class="hidden"></section>
+      <section id="screen-perfil" class="hidden"></section>
       <section id="screen-editar" class="hidden"></section>
       <section id="screen-usar" class="hidden"></section>
     </main>
   </div>
 
   <nav id="tabbar" class="tabbar" aria-label="Secciones">
-    <button type="button" data-screen="perfil">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
-      <span>Perfil</span>
+    <button type="button" data-screen="hoy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+      <span>Hoy</span>
     </button>
     <button type="button" data-screen="rutinas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>
       <span>Rutinas</span>
+    </button>
+    <button type="button" data-screen="perfil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
+      <span>Perfil</span>
     </button>
   </nav>
 
@@ -72,11 +77,15 @@
 
 <script src="gymcore.js"></script>
 <script src="exercises.js"></script>
+<script src="healthcore.js"></script>
+<script src="google-config.js"></script>
 <script src="../../shared/synccore.js"></script>
 <script src="core.js"></script>
 <script src="screens/ejercicios.js"></script>
 <script src="screens/editar.js"></script>
 <script src="screens/usar.js"></script>
+<script src="health.js"></script>
+<script src="screens/hoy.js"></script>
 <script src="screens/perfil.js"></script>
 <script src="screens/rutinas.js"></script>
 <script src="main.js"></script>

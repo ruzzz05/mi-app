@@ -173,3 +173,24 @@ test('isValidSession / isValidRoutine: aceptan lo bueno y rechazan datos mal for
   assert.eq(G.isValidRoutine({ id: 'r', name: 'R', exercises: [{ exId: 'x', sets: 'no' }] }), false);
   assert.eq(G.isValidRoutine(undefined), false);
 });
+
+test('todaySummary: resume los entrenos de un día e ignora borrados y entrenos sin series hechas', () => {
+  const day = '2026-02-10';
+  const mk = (id, d, hour, exs, extra = {}) => Object.assign({
+    id, startedAt: new Date(d + 'T' + hour + ':00').getTime(), updatedAt: 1, durationSec: 1800, routineName: 'R' + id, exercises: exs
+  }, extra);
+  const sessions = [
+    mk('a', day, '09', [ex('bench', set(10, 50), set(8, 60))]),
+    mk('b', day, '19', [ex('squat', set(5, 100))], { durationSec: 600 }),
+    mk('c', day, '20', [ex('squat', set(5, 100, false))]),                  // sin series hechas
+    mk('d', day, '21', [ex('squat', set(5, 100))], { deleted: true }),      // borrado
+    mk('e', '2026-02-09', '09', [ex('bench', set(10, 50))])                 // otro día
+  ];
+  const t = G.todaySummary(sessions, day);
+  assert.eq(t.count, 2);
+  assert.eq(t.sets, 3);
+  assert.eq(t.durationSec, 2400);
+  assert.eq(t.volume, 500 + 480 + 500);
+  assert.eq(t.names, ['Ra', 'Rb']);
+  assert.eq(G.todaySummary([], day), { count: 0, sets: 0, durationSec: 0, volume: 0, names: [] });
+});

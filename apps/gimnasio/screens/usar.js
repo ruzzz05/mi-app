@@ -45,7 +45,7 @@
   A.resumeWorkout = () => { session = read(); if (session) A.go('usar'); };
 
   // Al abrir la app con un entreno sin terminar, se vuelve a él
-  A.afterStart = () => (read() ? 'usar' : 'rutinas');
+  A.afterStart = () => (read() ? 'usar' : 'hoy');
 
   function discard() {
     if (!confirm('¿Descartar este entreno? No se guardará nada.')) return;

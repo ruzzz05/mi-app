@@ -203,7 +203,7 @@ body {
 .tabbar {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   margin: 6px 16px max(10px, calc(env(safe-area-inset-bottom) - 10px));
   padding: 6px;
@@ -299,3 +299,6 @@ body {
 .chart-dot { fill: var(--accent); }
 .chart-lbl { fill: var(--ink-3); font-size: 10px; }
 .chart-val { fill: var(--ink); font-size: 11px; font-weight: 700; }
+
+.hint.err { color: #c0392b; }
+.toolbar .hint { margin: 0; align-self: center; flex: 1; }

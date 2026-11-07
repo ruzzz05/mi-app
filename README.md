@@ -58,6 +58,8 @@ mi-app/
 │       ├── screens/        Una pantalla por archivo: perfil, rutinas…
 │       ├── gymcore.js      Lógica: estadísticas, copia del entreno, compartir rutinas
 │       ├── exercises.js    Catálogo de ejercicios en español (ver tools/build-catalog.md)
+│       ├── healthcore.js   Lógica: pasos y calorías de Google Health (sin red)
+│       ├── health.js       Conexión con Google Health; google-config.js lleva el ID de cliente
 │       └── tests/          Tests de la lógica y del catálogo
 │
 └── tests/          Tests de planner.js
@@ -98,6 +100,18 @@ service cloud.firestore {
 ```
 
 Para comprobar que se sube: Firestore → Datos → `users` → tu UID (Authentication → Users) → deben aparecer `gym/config` y `gymlogs/AAAA-MM`. El catálogo de ejercicios (`apps/gimnasio/exercises.js`) viene de free-exercise-db; cómo se generó está en `tools/build-catalog.md`. Las imágenes se piden bajo demanda a jsDelivr.
+
+### Gimnasio: pasos y calorías (Google Health)
+
+La pantalla **Hoy** del Gimnasio muestra los pasos y calorías de tu pulsera Google Fitbit Air a través de la Google Health API. Es un experimento sin servidor: el navegador pide un permiso a Google (dura ~1 h) y consulta la API con él. Para activarlo hay que crear el acceso en Google Cloud **una sola vez**:
+
+1. Entra en [Google Cloud Console](https://console.cloud.google.com/) y elige el proyecto de Firebase (`mi-app-490b5`) o crea uno.
+2. **APIs y servicios → Biblioteca**: busca **Google Health API** y pulsa *Habilitar*.
+3. **Google Auth Platform** (pantalla de consentimiento): tipo *Externo*, pon un nombre y tu correo; en *Público* deja el estado **En pruebas** y añade tu cuenta de Google (la de la pulsera) como **usuario de prueba**; en *Acceso a los datos* añade el permiso `https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly`.
+4. **Clientes → Crear cliente → Aplicación web**. En *Orígenes autorizados de JavaScript* pon `https://ruzzz05.github.io`. Copia el **ID de cliente**.
+5. Pégalo en `apps/gimnasio/google-config.js` (`clientId: '...'`), sube el cambio y abre Hoy → **Conectar con Google**. Google avisará de que la app no está verificada: *Avanzado → Continuar*.
+
+El ID de cliente no es un secreto. Mientras la app de Google Cloud esté "En pruebas", el permiso **caduca** (calculo que cada ~7 días): la pantalla lo dirá y bastará pulsar *Volver a conectar*. Si el inicio de sesión de Google no funciona dentro de la app instalada en el iPhone, la alternativa es una función en la nube de Firebase (requiere activar la facturación).
 
 ## Cómo encaja todo
 
