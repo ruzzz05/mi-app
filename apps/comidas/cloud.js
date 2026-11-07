@@ -28,6 +28,7 @@ const store = {
 let ready = false;
 let dirty = store.get(PENDING_KEY) === '1';
 let timer = null;
+let lastError = ''; // último fallo con la nube, para decírtelo al pulsar "Sincronizar ahora"
 
 const uid = () => A.auth.currentUser.uid;
 
@@ -96,6 +97,7 @@ async function doConnect(force) {
     ready = true;
     return true;
   } catch (err) {
+    lastError = String(err && err.message || err);
     console.warn('Nube no disponible por ahora:', err);
     return false;
   }
@@ -109,10 +111,12 @@ async function push() {
   store.del(PENDING_KEY);
 }
 
+// Devuelve true si no queda nada pendiente (no había nada o se subió) y false si falló.
 async function flush() {
-  if (!dirty) return;
-  if (!(await connect())) return;
-  try { await push(); } catch (err) { dirty = true; console.warn('No se pudo subir:', err); }
+  if (!dirty) return true;
+  if (!(await connect())) return false;
+  try { await push(); return true; }
+  catch (err) { dirty = true; lastError = String(err && err.message || err); console.warn('No se pudo subir:', err); return false; }
 }
 
 C.onSave = () => {
@@ -123,9 +127,10 @@ C.onSave = () => {
 };
 
 C.syncNow = async () => {
-  const ok = await connect({ force: true });
-  if (ok) await flush();
-  C.toast(ok ? 'Sincronizado' : 'Sin conexión');
+  const connected = await connect({ force: true });
+  const ok = connected && await flush();
+  if (ok) C.toast('Sincronizado');
+  else C.toast(connected ? 'No se pudo subir: ' + lastError : 'No se pudo conectar: ' + (lastError || 'sin conexión'));
 };
 
 window.addEventListener('online', flush);

@@ -1,5 +1,5 @@
 // Cambia VERSION cuando modifiques archivos de la app para forzar la actualización.
-const VERSION = 'v29';
+const VERSION = 'v30';
 const CACHE = `mi-app-${VERSION}`;
 
 // Núcleo de la app. Los archivos de cada módulo se leen de apps.json (campos "path" y "files").
