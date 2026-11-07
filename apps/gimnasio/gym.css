@@ -1,51 +1,61 @@
-/* Tema del Gimnasio: naranja vivo con blanco (claro) o con negro (oscuro). */
+/* Tema del Gimnasio: "Grafito protagonista" sobre gris claro (claro) y "Grafito y lima" (oscuro). */
 :root {
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f2f2f2;
-  --ink: #0a0a0a;
-  --ink-2: #4a4a4a;
-  --ink-3: #8a8a8a;
-  --line: #e4e4e4;
-  --btn-bg: #ff6b35;
-  --btn-ink: #0a0a0a;
-  --accent: #ff6b35;
-  --accent-soft: #ffe3d6;
-  --tab-ink: #b8400f;
-  --ok: #2a9d4b;
-  --lv0: #ebebeb; --lv1: #ffd2bd; --lv2: #ffa57e; --lv3: #ff7a45; --lv4: #d9460f;
+  --bg: #ECEDEE;
+  --surface: #FFFFFF;
+  --surface-2: #E3E4E6;
+  --ink: #0F0F10;
+  --ink-2: #4A4D51;
+  --ink-3: #6F7377;
+  --line: #D5D7DA;
+  --btn-bg: #1A1B1D;
+  --btn-ink: #C6F432;
+  --accent: #3F5A00;
+  --accent-soft: #E3F2B0;
+  --tab-bg: #1A1B1D;
+  --tab-ink: #C6F432;
+  --ok: #4F7A00;
+  --on-ok: #ffffff;
+  --lv0: #DADBDD; --lv1: #E1F0A8; --lv2: #D2EC6C; --lv3: #C6F432; --lv4: #7FA300;
   --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.08);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0a0a0a;
-    --surface: #151515;
-    --surface-2: #212121;
-    --ink: #fafafa;
-    --ink-2: #b8b8b8;
-    --ink-3: #7c7c7c;
-    --line: #2a2a2a;
-    --accent-soft: #33160a;
-    --tab-ink: #ff8c5a;
-    --ok: #4cc26b;
-    --lv0: #262626; --lv1: #5a2a14; --lv2: #8f3f1b; --lv3: #d1581f; --lv4: #ff8c5a;
+    --bg: #0F0F10;
+    --surface: #1A1B1D;
+    --surface-2: #26272A;
+    --ink: #F2F2F0;
+    --ink-2: #B9BABD;
+    --ink-3: #8A8D91;
+    --line: #2E2F32;
+    --btn-bg: #C6F432;
+    --btn-ink: #0F0F10;
+    --accent: #C6F432;
+    --accent-soft: #2A3310;
+    --tab-ink: #C6F432;
+    --ok: #C6F432;
+    --on-ok: #0F0F10;
+    --lv0: #26272A; --lv1: #3B4A12; --lv2: #62801A; --lv3: #96BF26; --lv4: #C6F432;
     --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0a0a0a;
-  --surface: #151515;
-  --surface-2: #212121;
-  --ink: #fafafa;
-  --ink-2: #b8b8b8;
-  --ink-3: #7c7c7c;
-  --line: #2a2a2a;
-  --accent-soft: #33160a;
-  --tab-ink: #ff8c5a;
-  --ok: #4cc26b;
-  --lv0: #262626; --lv1: #5a2a14; --lv2: #8f3f1b; --lv3: #d1581f; --lv4: #ff8c5a;
+  --bg: #0F0F10;
+  --surface: #1A1B1D;
+  --surface-2: #26272A;
+  --ink: #F2F2F0;
+  --ink-2: #B9BABD;
+  --ink-3: #8A8D91;
+  --line: #2E2F32;
+  --btn-bg: #C6F432;
+  --btn-ink: #0F0F10;
+  --accent: #C6F432;
+  --accent-soft: #2A3310;
+  --tab-ink: #C6F432;
+  --ok: #C6F432;
+  --on-ok: #0F0F10;
+  --lv0: #26272A; --lv1: #3B4A12; --lv2: #62801A; --lv3: #96BF26; --lv4: #C6F432;
   --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
   color-scheme: dark;
 }
@@ -243,7 +253,7 @@ body {
   transition: background .2s ease, color .2s ease;
 }
 .tabbar svg { width: 24px; height: 24px; }
-.tabbar button.active { background: var(--accent-soft); color: var(--tab-ink); }
+.tabbar button.active { background: var(--tab-bg, var(--accent-soft)); color: var(--tab-ink); }
 
 /* Rutinas */
 .routine { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
@@ -268,7 +278,7 @@ body {
 .field.num { min-height: 40px; padding: 0 8px; text-align: center; width: 100%; min-width: 0; }
 .unit { color: var(--ink-3); font-size: 12px; }
 .check { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink-3); width: 40px; height: 40px; border-radius: 10px; font-size: 18px; cursor: pointer; }
-.check.on { background: var(--ok); border-color: var(--ok); color: #fff; }
+.check.on { background: var(--ok); border-color: var(--ok); color: var(--on-ok); }
 .icon-btn.small { width: 32px; height: 32px; font-size: 18px; }
 
 /* Entreno en curso */

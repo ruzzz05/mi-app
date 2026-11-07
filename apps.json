@@ -24,7 +24,7 @@
     "name": "Mi-Menu",
     "description": "Menú de comidas y cenas, qué toca hoy y lista de la compra.",
     "path": "apps/comidas/index.html",
-    "accent": "#ffd60a",
+    "accent": "#ff6b35",
     "files": [
       "apps/comidas/comidas.css",
       "apps/comidas/recipes.js",
@@ -46,7 +46,7 @@
     "name": "Gimnasio",
     "description": "Rutinas, entrenos y estadísticas por ejercicio y músculo.",
     "path": "apps/gimnasio/index.html",
-    "accent": "#ff6b35",
+    "accent": "#C6F432",
     "files": [
       "apps/gimnasio/gym.css",
       "apps/gimnasio/gymcore.js",
