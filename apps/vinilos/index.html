@@ -41,44 +41,43 @@
     .controls { grid-template-columns: 1.4fr 1fr auto; }
   }
 
-  /* Rejilla de artistas */
-  #artists {
-    column-width: 300px;
-    column-gap: 20px;
+  /* Pared de portadas: 3 por fila en el móvil, más en pantallas anchas */
+  .wall {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
   }
-  .artist {
-    break-inside: avoid;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 18px;
-    margin: 0 0 20px;
-    box-shadow: var(--shadow);
+  @media (min-width: 640px) {
+    .wall { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
   }
-  .artist-name {
-    font-family: var(--serif);
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -.01em;
-    margin: 0 0 14px;
-  }
-  .album {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 10px 0;
-    border-top: 1px solid var(--line);
-  }
-  .album img {
-    width: 72px;
-    height: 72px;
-    flex: none;
-    object-fit: cover;
-    border-radius: 8px;
-    background: var(--surface-2);
+  .tile {
+    position: relative;
     display: block;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--surface-2);
+    box-shadow: var(--shadow);
+    color: #fff;
+    text-decoration: none;
   }
-  .album span { font-size: 14px; line-height: 1.3; color: var(--ink); }
+  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile .cap {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 20px 7px 6px;
+    background: linear-gradient(transparent, rgba(0,0,0,.82));
+  }
+  .tile .cap b {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.15;
+  }
+  .tile .cap i { display: block; margin-top: 1px; font-size: 9.5px; font-style: normal; opacity: .78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wall .empty { grid-column: 1 / -1; }
 
   .empty { color: var(--ink-3); padding: 24px 0; }
 
@@ -92,6 +91,28 @@
     text-transform: uppercase;
     color: var(--ink-3);
   }
+
+
+  /* Solo el dueño: añadir discos */
+  .owner-bar { display: none; gap: 10px; margin: -16px 0 24px; max-width: 640px; }
+  .owner-bar.show { display: flex; }
+  .owner-bar .btn { flex: 1; min-height: 44px; font-size: 14px; }
+  .modal-content.add-content { max-height: 92vh; overflow-y: auto; overflow-x: hidden; text-align: left; }
+  .modal-content.add-content h2 { text-align: center; }
+  .add-content label { display: block; margin: 14px 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+  .add-preview { display: none; gap: 12px; align-items: center; margin-top: 12px; }
+  .add-preview.show { display: flex; }
+  .modal-content .add-preview img { width: 84px; height: 84px; aspect-ratio: auto; flex: none; border-radius: 8px; object-fit: cover; background: var(--surface-2); box-shadow: none; }
+  .add-preview b { font-size: 15px; line-height: 1.25; }
+  .suggest { display: grid; gap: 6px; margin-top: 8px; }
+  .suggest button { text-align: left; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 10px; padding: 8px 10px; font: 13px var(--sans); cursor: pointer; }
+  .suggest small { display: block; color: var(--ink-3); }
+  .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag-chips button { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 999px; padding: 4px 10px; font: 12px var(--sans); cursor: pointer; }
+  #add-status { min-height: 20px; margin: 12px 0 0; font-size: 13px; color: var(--ink-2); }
+  #add-status.err { color: #c0392b; }
+  .add-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .add-actions .btn { flex: 1; }
 
   /* Modal */
   .modal {
@@ -162,7 +183,7 @@
   </header>
 
   <main class="page">
-    <h1 class="page-title">Artistas y álbumes</h1>
+    <h1 class="page-title">Mi colección</h1>
 
     <div class="controls">
       <input id="search" class="field" type="search" placeholder="Buscar artista o álbum" autocomplete="off">
@@ -172,7 +193,11 @@
       <button id="random-btn" class="btn" type="button">Disco aleatorio</button>
     </div>
 
-    <div id="artists"><p class="empty">Cargando biblioteca...</p></div>
+    <div class="owner-bar" id="owner-bar">
+      <button id="add-btn" class="btn" type="button">+ Añadir disco</button>
+    </div>
+
+    <div id="wall" class="wall"><p class="empty">Cargando biblioteca...</p></div>
 
     <div id="vinyl-counter">Calculando colección...</div>
   </main>
@@ -190,7 +215,33 @@
     </div>
   </div>
 
+  <div id="add-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="add-title">
+    <div class="modal-content add-content">
+      <button class="close-modal" id="add-close" type="button" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+      <h2 id="add-title">Añadir disco</h2>
+      <label for="add-link">Enlace del álbum en Spotify</label>
+      <input id="add-link" class="field" type="url" inputmode="url" placeholder="Pega aquí el enlace (Compartir → Copiar enlace)" autocomplete="off">
+      <div class="add-preview" id="add-preview"><img id="add-cover" alt=""><div><b id="add-name"></b></div></div>
+      <label for="add-name-input">Nombre del álbum</label>
+      <input id="add-name-input" class="field" type="text" maxlength="120" autocomplete="off">
+      <label for="add-artist">Artista</label>
+      <input id="add-artist" class="field" type="text" maxlength="80" list="artist-list" autocomplete="off">
+      <datalist id="artist-list"></datalist>
+      <div class="suggest" id="add-suggest"></div>
+      <label for="add-tags">Estilos (separados por comas)</label>
+      <input id="add-tags" class="field" type="text" autocomplete="off" placeholder="rap, trap">
+      <div class="tag-chips" id="add-tagchips"></div>
+      <p id="add-status" role="status"></p>
+      <div class="add-actions"><button id="add-save" class="btn" type="button" disabled>Guardar disco</button></div>
+    </div>
+  </div>
+
 <script src="papaparse.min.js"></script>
+<script src="../../shared/synccore.js"></script>
+<script src="vinilos-core.js"></script>
+<script src="vinilos-config.js"></script>
 <script>
 const PLACEHOLDER = "data:image/svg+xml;utf8," + encodeURIComponent(
   "<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='80' height='80' fill='#8a8a8a'/><circle cx='40' cy='40' r='22' fill='none' stroke='#fff' stroke-opacity='.6' stroke-width='3'/><circle cx='40' cy='40' r='4' fill='#fff' fill-opacity='.6'/></svg>"
@@ -199,9 +250,11 @@ const PLACEHOLDER = "data:image/svg+xml;utf8," + encodeURIComponent(
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 let data = {};
+let baseAlbums = [];   // los del archivo musica.csv
+let extras = [];       // los añadidos desde la app (solo el dueño añade)
 const searchInput = document.getElementById('search');
 const tagFilter = document.getElementById('tag-filter');
-const artistsDiv = document.getElementById('artists');
+const wall = document.getElementById('wall');
 
 function loadCSV() {
   Papa.parse("musica.csv", {
@@ -212,37 +265,41 @@ function loadCSV() {
       if (results.data && results.data.length > 0) {
         processCSVData(results.data);
       } else {
-        artistsDiv.innerHTML = '<p class="empty">El archivo CSV está vacío o no se pudo leer.</p>';
+        wall.innerHTML = '<p class="empty">El archivo CSV está vacío o no se pudo leer.</p>';
       }
     },
     error: err => {
       console.error("Error leyendo CSV:", err);
-      artistsDiv.innerHTML = '<p class="empty">Error cargando "musica.csv".</p>';
+      wall.innerHTML = '<p class="empty">Error cargando "musica.csv".</p>';
     }
   });
 }
 
 function processCSVData(csvData) {
-  data = {};
-  let totalAlbums = 0;
-
-  csvData.forEach(row => {
-    const artist = row.Artist ? row.Artist.trim() : "Desconocido";
-    const name = row.Name || "Sin título";
-    const image = (row.Image || "").trim();
-    const url = (row.Url || "#").trim();
-    const tags = row.Tags ? row.Tags.split('|').map(t => t.trim().toLowerCase()) : [];
-
-    if (!data[artist]) data[artist] = [];
-    data[artist].push({ name, image, tags, url });
-    totalAlbums++;
-  });
-
-  document.getElementById('vinyl-counter').textContent = `${totalAlbums} vinilos en la colección`;
-
-  populateTagFilter();
-  displayArtists(data);
+  baseAlbums = csvData.map(row => ({
+    artist: row.Artist ? row.Artist.trim() : "Desconocido",
+    name: row.Name || "Sin título",
+    image: (row.Image || "").trim(),
+    url: (row.Url || "#").trim(),
+    tags: row.Tags ? row.Tags.split('|').map(t => t.trim().toLowerCase()) : []
+  }));
+  rebuild();
 }
+
+// Junta el archivo y lo añadido desde la app, y repinta respetando el buscador y el filtro
+function rebuild() {
+  const all = VinilosCore.mergeAlbums(baseAlbums, extras);
+  data = {};
+  all.forEach(a => { (data[a.artist] = data[a.artist] || []).push(a); });
+  document.getElementById('vinyl-counter').textContent = `${all.length} vinilos en la colección`;
+  const keepTag = tagFilter.value;
+  populateTagFilter();
+  if ([...tagFilter.options].some(o => o.value === keepTag)) tagFilter.value = keepTag;
+  searchAndFilterArtists();
+}
+
+// Lo llama vinilos-cloud.js con los discos añadidos
+window.vinilosSetExtras = list => { extras = list || []; if (baseAlbums.length) rebuild(); };
 
 function populateTagFilter() {
   const tags = new Set();
@@ -256,23 +313,20 @@ function populateTagFilter() {
   });
 }
 
-function displayArtists(artistsData) {
-  const names = Object.keys(artistsData).sort((a, b) => a.localeCompare(b, 'es'));
-  if (names.length === 0) {
-    artistsDiv.innerHTML = '<p class="empty">No hay coincidencias.</p>';
+// Una sola lista plana de portadas, ordenada por artista y luego por álbum
+function displayWall(artistsData) {
+  const all = [];
+  Object.keys(artistsData).forEach(artist => artistsData[artist].forEach(album => all.push({ ...album, artist })));
+  if (all.length === 0) {
+    wall.innerHTML = '<p class="empty">No hay coincidencias.</p>';
     return;
   }
-  artistsDiv.innerHTML = names.map(artist => `
-    <section class="artist">
-      <h2 class="artist-name">${esc(artist)}</h2>
-      ${artistsData[artist].map(album => `
-        <div class="album">
-          <a href="${esc(album.url)}" target="_blank" rel="noopener">
-            <img src="${esc(album.image || PLACEHOLDER)}" alt="" loading="lazy" onerror="this.onerror=null;this.src=PLACEHOLDER">
-          </a>
-          <span>${esc(album.name)}</span>
-        </div>`).join('')}
-    </section>`).join('');
+  all.sort((x, y) => x.artist.localeCompare(y.artist, 'es') || x.name.localeCompare(y.name, 'es'));
+  wall.innerHTML = all.map(album => `
+    <a class="tile" href="${esc(album.url)}" target="_blank" rel="noopener">
+      <img src="${esc(album.image || PLACEHOLDER)}" alt="" loading="lazy" onerror="this.onerror=null;this.src=PLACEHOLDER">
+      <span class="cap"><b>${esc(album.name)}</b><i>${esc(album.artist)}</i></span>
+    </a>`).join('');
 }
 
 function searchAndFilterArtists() {
@@ -286,7 +340,7 @@ function searchAndFilterArtists() {
     );
     if (albums.length) result[artist] = albums;
   }
-  displayArtists(result);
+  displayWall(result);
 }
 
 searchInput.addEventListener('input', searchAndFilterArtists);
@@ -313,8 +367,103 @@ document.querySelector('.close-modal').onclick = closeModal;
 modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
+// ---------- Solo el dueño: añadir discos ----------
+const $ = id => document.getElementById(id);
+const addModal = $('add-modal');
+let addState = null;   // { spotify: {id, url}, image, year }
+
+window.vinilosOwnerChanged = isOwner => { $('owner-bar').classList.toggle('show', !!isOwner); };
+
+function setStatus(msg, isErr) { const s = $('add-status'); s.textContent = msg || ''; s.classList.toggle('err', !!isErr); }
+
+function openAdd() {
+  addState = null;
+  ['add-link', 'add-name-input', 'add-artist', 'add-tags'].forEach(id => { $(id).value = ''; });
+  $('add-preview').classList.remove('show');
+  $('add-suggest').innerHTML = '';
+  $('add-save').disabled = true;
+  setStatus('');
+  $('artist-list').innerHTML = Object.keys(data).sort((a, b) => a.localeCompare(b, 'es')).map(a => `<option value="${esc(a)}">`).join('');
+  const tags = new Set();
+  Object.values(data).forEach(l => l.forEach(a => a.tags.forEach(t => t && tags.add(t))));
+  $('add-tagchips').innerHTML = [...tags].sort().map(t => `<button type="button" data-tag="${esc(t)}">${esc(t)}</button>`).join('');
+  addModal.classList.add('open');
+}
+
+// Al pegar un enlace válido, Spotify (oEmbed, público) da el nombre y la portada; iTunes sugiere artista, año y estilo
+async function lookup() {
+  const link = $('add-link').value;
+  const sp = VinilosCore.parseSpotifyAlbum(link);
+  addState = null; $('add-save').disabled = true; $('add-preview').classList.remove('show'); $('add-suggest').innerHTML = '';
+  if (!sp) { setStatus(link.trim() ? 'Eso no parece un enlace de álbum de Spotify.' : '', !!link.trim()); return; }
+  if (VinilosCore.mergeAlbums(baseAlbums, extras).some(a => a.url && a.url.includes(sp.id))) { setStatus('Ese disco ya está en tu colección.', true); return; }
+  setStatus('Buscando el álbum…');
+  try {
+    const res = await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent(sp.url));
+    if (!res.ok) throw new Error('Spotify respondió ' + res.status);
+    const info = await res.json();
+    if ($('add-link').value.indexOf(sp.id) < 0) return; // el enlace cambió mientras buscaba
+    addState = { spotify: sp, image: info.thumbnail_url, year: null };
+    $('add-cover').src = info.thumbnail_url; $('add-name').textContent = info.title;
+    $('add-preview').classList.add('show');
+    $('add-name-input').value = info.title || '';
+    $('add-save').disabled = false;
+    setStatus('Elige o escribe el artista y los estilos, y guarda.');
+    suggest(info.title);
+  } catch (err) {
+    console.warn(err);
+    setStatus('No se pudo leer el álbum de Spotify: ' + (err.message || err), true);
+  }
+}
+
+async function suggest(title) {
+  try {
+    const res = await fetch('https://itunes.apple.com/search?entity=album&limit=5&country=ES&term=' + encodeURIComponent(title));
+    const found = (await res.json()).results || [];
+    $('add-suggest').innerHTML = found.map((r, i) => `<button type="button" data-i="${i}">${esc(r.artistName)}<small>${esc(r.collectionName)} · ${esc((r.releaseDate || '').slice(0, 4))} · ${esc(r.primaryGenreName || '')}</small></button>`).join('');
+    $('add-suggest').onclick = e => {
+      const b = e.target.closest('button'); if (!b || !addState) return;
+      const r = found[+b.dataset.i];
+      $('add-artist').value = r.artistName;
+      if (r.primaryGenreName && !$('add-tags').value) $('add-tags').value = r.primaryGenreName.toLowerCase();
+      addState.year = (r.releaseDate || '').slice(0, 4);
+    };
+  } catch (err) { /* las sugerencias son opcionales */ }
+}
+
+async function saveAlbum() {
+  if (!addState) return;
+  const r = VinilosCore.newAlbum({
+    spotifyUrl: addState.spotify.url, name: $('add-name-input').value, artist: $('add-artist').value,
+    image: addState.image, tags: $('add-tags').value, year: addState.year
+  });
+  if (!r.ok) { setStatus(r.error, true); return; }
+  $('add-save').disabled = true; setStatus('Guardando…');
+  try {
+    extras = await VinilosCloud.add(r.album);
+    rebuild();
+    addModal.classList.remove('open');
+  } catch (err) {
+    console.warn(err);
+    setStatus('No se pudo guardar: ' + (err.message || err), true);
+    $('add-save').disabled = false;
+  }
+}
+
+$('add-btn').onclick = openAdd;
+$('add-close').onclick = () => addModal.classList.remove('open');
+addModal.addEventListener('click', e => { if (e.target === addModal) addModal.classList.remove('open'); });
+$('add-link').addEventListener('input', lookup);
+$('add-save').onclick = saveAlbum;
+$('add-tagchips').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  $('add-tags').value = VinilosCore.normalizeTags($('add-tags').value + ',' + b.dataset.tag).join(', ');
+};
+
+
 loadCSV();
 </script>
+<script type="module" src="vinilos-cloud.js"></script>
 <script src="../../shared/pwa.js"></script>
 </body>
 </html>

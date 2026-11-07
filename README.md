@@ -33,6 +33,9 @@ mi-app/
 │   │   ├── index.html
 │   │   ├── musica.csv      Datos: artista, álbum, portada, estilos, enlace
 │   │   ├── papaparse.min.js  Lector de CSV
+│   │   ├── vinilos-core.js   Lógica: enlaces de Spotify, fusión, validación (con tests)
+│   │   ├── vinilos-cloud.js  Discos añadidos desde la app (Firestore)
+│   │   ├── vinilos-config.js UID del dueño (quién ve el botón de añadir)
 │   │   └── img/            Portadas
 │   │
 │   ├── ask/              Juego de preguntas (Yo nunca y Ask)
@@ -95,11 +98,30 @@ service cloud.firestore {
           && request.auth.token.firebase.sign_in_provider != 'anonymous';
       }
     }
+    // Vinilos: la colección añadida desde la app la puede leer cualquier cuenta con sesión,
+    // pero solo la puede escribir el dueño (pon aquí TU UID)
+    match /vinilos/{doc} {
+      allow read: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      allow write: if request.auth != null
+        && request.auth.uid == 'PEGA_AQUI_TU_UID';
+    }
   }
 }
 ```
 
 Para comprobar que se sube: Firestore → Datos → `users` → tu UID (Authentication → Users) → deben aparecer `gym/config` y `gymlogs/AAAA-MM`. El catálogo de ejercicios (`apps/gimnasio/exercises.js`) viene de free-exercise-db; cómo se generó está en `tools/build-catalog.md`. Las imágenes se piden bajo demanda a jsDelivr.
+
+### Vinilos: añadir discos desde la app
+
+Vinilos enseña una pared de portadas (3 por fila). Los 56 discos del archivo `apps/vinilos/musica.csv` siguen ahí, y **solo el dueño** puede añadir más desde la propia app (botón "+ Añadir disco"). Cualquier cuenta con sesión los ve.
+
+- **Cómo se añade:** en Spotify, en el álbum, *Compartir → Copiar enlace*; se pega en la app, que lee el nombre y la portada de Spotify (oEmbed, público) y sugiere artista, año y estilo (buscador de iTunes). Al tocar el disco se abre ese álbum en Spotify.
+- **Dónde se guardan:** Firestore, documento `vinilos/coleccion`. La nube se lee como mucho una vez cada 24 h; al añadir se lee antes de escribir para no pisar lo de otro dispositivo.
+- **Para activarlo (una vez):**
+  1. Copia tu **UID** (Firebase → Authentication → Usuarios, columna *UID de usuario*).
+  2. Pégalo en `apps/vinilos/vinilos-config.js` (`ownerUid: '...'`). Solo decide si se enseña el botón.
+  3. Pégalo también en las reglas de Firestore, en lugar de `PEGA_AQUI_TU_UID` (el bloque de reglas de la sección anterior, "Datos del Gimnasio", que son las reglas completas de la app). **Esto es lo que impide de verdad que otra persona escriba**. Publica las reglas.
 
 ### Gimnasio: pasos y calorías (Google Health)
 

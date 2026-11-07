@@ -6,7 +6,10 @@
     "path": "apps/vinilos/index.html",
     "files": [
       "apps/vinilos/musica.csv",
-      "apps/vinilos/papaparse.min.js"
+      "apps/vinilos/papaparse.min.js",
+      "apps/vinilos/vinilos-core.js",
+      "apps/vinilos/vinilos-config.js",
+      "apps/vinilos/vinilos-cloud.js"
     ]
   },
   {
