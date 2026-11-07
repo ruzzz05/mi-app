@@ -1,23 +1,37 @@
 // Puerta de entrada de la app: ninguna página se ve sin una sesión iniciada (usuario + contraseña).
-// Va en el <head> de cada página, antes que nada. Oculta la página al instante, carga Firebase Auth
-// y muestra el login encima hasta que hay sesión. La sesión se guarda en el navegador.
+// Va en el <head> de cada página, antes que nada. Carga Firebase Auth y muestra el login encima
+// hasta que hay sesión. La sesión se guarda en el navegador.
+// Sin sesión conocida en este dispositivo la página arranca oculta. Si ya se inició sesión aquí,
+// se muestra al instante y se comprueba en segundo plano (iOS tarda en abrir donde Firebase guarda
+// la sesión y, si no, la pantalla se quedaba en negro). Es solo de interfaz: lo que protege los
+// datos son las reglas de Firestore.
 // Expone window.MiAuth (ready, auth, username, signOut). Pruebas de la lógica: shared/tests.
 (function () {
   const SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
   const PENDING_PREFIX = 'pending-sync.'; // otras apps marcan aquí que tienen cambios sin subir
   const base = new URL('.', document.currentScript.src);
 
-  // 1. Ocultar ya, antes de cualquier espera
+  // Nombre de la última cuenta que inició sesión en este dispositivo (no es ningún secreto)
+  const SESSION_KEY = 'miapp.session';
+  const remember = name => {
+    try { if (name) localStorage.setItem(SESSION_KEY, name); else localStorage.removeItem(SESSION_KEY); }
+    catch (e) { /* sin almacenamiento */ }
+  };
+  let stored = null;
+  try { stored = localStorage.getItem(SESSION_KEY); } catch (e) { /* sin almacenamiento */ }
+
   const hide = document.createElement('style');
   hide.id = 'auth-hide';
   hide.textContent = 'html{visibility:hidden}';
-  document.head.appendChild(hide);
+  const hidePage = () => { if (!hide.isConnected) document.head.appendChild(hide); };
+  if (!stored) hidePage(); // sin sesión conocida: oculta ya, antes de cualquier espera
+  let settled = false;
 
   let resolveReady;
   const MiAuth = window.MiAuth = {
     ready: new Promise(r => { resolveReady = r; }),
     auth: null,
-    username: null,
+    username: stored,
     signOut: null
   };
 
@@ -34,6 +48,8 @@
 
   function reveal(user, core) {
     MiAuth.username = core.emailToUsername(user.email);
+    remember(MiAuth.username);
+    settled = true;
     if (overlay) { overlay.remove(); overlay = null; }
     hide.remove();
     resolveReady(user);
@@ -60,6 +76,8 @@
     .auth-error{min-height:20px;margin:12px 0 0;font-size:13px;color:#d70015}`;
 
   function showOverlay(note) {
+    hidePage();
+    if (overlay) overlay.remove();
     if (!document.getElementById('auth-style')) {
       const st = document.createElement('style');
       st.id = 'auth-style';
@@ -86,6 +104,8 @@
   }
 
   function showLogin(sdk, core, auth) {
+    settled = true;
+    remember(null); // no hay sesión: que la próxima vez vuelva a empezar oculta
     const anonymous = !!(auth.currentUser && auth.currentUser.isAnonymous);
     const card = showOverlay(anonymous ? 'Crea tu cuenta para conservar tus datos.' : 'Entra con tu cuenta para continuar.');
     let mode = anonymous ? 'register' : 'login';
@@ -162,12 +182,15 @@
       await auth.authStateReady();
     } catch (ex) {
       console.warn('No se pudo comprobar la sesión:', ex);
+      if (stored) return; // ya se inició sesión aquí: la página sigue visible y funciona con lo guardado
+      settled = true;
       showBlocked('No se pudo comprobar tu sesión. Comprueba la conexión e inténtalo de nuevo.');
       return;
     }
 
     MiAuth.signOut = async function () {
       if (hasPending() && !confirm('Tienes cambios sin subir a la nube. Si cierras sesión y entra otra cuenta en este dispositivo se perderán. ¿Cerrar sesión igualmente?')) return false;
+      remember(null);
       await sdk.signOut(auth);
       location.reload();
       return true;
@@ -176,6 +199,11 @@
     if (auth.currentUser && !auth.currentUser.isAnonymous) reveal(auth.currentUser, core);
     else showLogin(sdk, core, auth);
   }
+
+  // Sin sesión conocida y sin respuesta: mejor un aviso con "Reintentar" que una pantalla en negro
+  setTimeout(() => {
+    if (!settled && !stored) showBlocked('Está tardando demasiado en cargar. Comprueba la conexión e inténtalo de nuevo.');
+  }, 10000);
 
   start();
 })();
