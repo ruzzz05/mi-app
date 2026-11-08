@@ -458,3 +458,9 @@ img[data-photo]:not([src]), .photo-preview:not([src]) { display: none; }
 /* Recetas: buscador */
 input[type="search"].field { -webkit-appearance: none; appearance: none; }
 .search-field { margin-bottom: 14px; }
+
+/* Ticket */
+.cam-btn { padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; }
+.cam-btn svg { width: 22px; height: 22px; }
+.ticket-row { cursor: pointer; }
+#ticket-ok { width: 100%; margin-top: 12px; }

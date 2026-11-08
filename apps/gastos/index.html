@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es" data-themes="light,dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Gastos</title>
+
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="icon" type="image/png" href="../../icons/icon-192.png">
+<link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi App">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ffffff">
+
+<link rel="stylesheet" href="../../shared/styles.css">
+<link rel="stylesheet" href="gastos.css">
+<script src="../../shared/auth.js"></script>
+<script src="../../shared/theme.js"></script>
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="back" href="../../index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      Inicio
+    </a>
+    <span class="title">Gastos</span>
+    <span class="topbar-actions"><span class="spacer"></span></span>
+  </header>
+
+  <div class="scroller">
+    <main class="wrap">
+      <section id="screen-resumen"></section>
+      <section id="screen-subs" class="hidden"></section>
+      <section id="screen-ajustes" class="hidden"></section>
+    </main>
+  </div>
+
+  <button id="fab" class="fab" type="button" aria-label="Añadir gasto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+
+  <nav class="tabbar" aria-label="Secciones">
+    <button type="button" data-screen="resumen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      <span>Resumen</span>
+    </button>
+    <button type="button" data-screen="subs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 00-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0014.5 4.5L20 16"/><path d="M20 20v-4h-4"/></svg>
+      <span>Suscripciones</span>
+    </button>
+    <button type="button" data-screen="ajustes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+      <span>Automático</span>
+    </button>
+  </nav>
+
+  <div id="sheet" class="sheet" aria-hidden="true">
+    <div class="sheet-panel" role="dialog" aria-modal="true">
+      <div class="sheet-head">
+        <h2 id="sheet-title"></h2>
+        <button id="sheet-close" class="icon-btn" type="button" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+        </button>
+      </div>
+      <div id="sheet-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+<script src="gastoscore.js"></script>
+<script src="core.js"></script>
+<script src="screens/resumen.js"></script>
+<script src="screens/subs.js"></script>
+<script src="screens/ajustes.js"></script>
+<script src="main.js"></script>
+<script src="../../shared/pwa.js"></script>
+</body>
+</html>

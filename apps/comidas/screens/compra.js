@@ -13,6 +13,41 @@
   const setList = list => { C.state.list = list; C.save(); C.render(); };
   let boughtOpen = false; // el bloque "Comprados" recuerda si estaba desplegado
 
+  // Foto del ticket: la IA dice qué productos de la lista salen; tú confirmas y pasan a comprados.
+  async function scanTicket(file) {
+    const pending = P.pendingItems(items());
+    if (!pending.length) { C.toast('No hay nada pendiente en la lista'); return; }
+    C.toast('Leyendo el ticket…', 30000);
+    let keys;
+    try {
+      keys = P.parseTicketMatches(await window.Ticket.read(file, P.ticketPrompt(pending)), pending);
+    } catch (err) {
+      console.warn('Ticket:', err);
+      C.toast('No se pudo leer el ticket. Inténtalo de nuevo.', 3500);
+      return;
+    }
+    $('toast').classList.remove('show');
+    if (!keys.length) { C.toast('No he encontrado productos de tu lista en el ticket', 3500); return; }
+    const row = it => `
+      <label class="buy ticket-row">
+        <span class="buy-main"><input type="checkbox" data-ticket="${esc(it.key)}" ${keys.includes(it.key) ? 'checked' : ''}>
+        <span class="buy-name">${esc(it.name)}</span></span>
+      </label>`;
+    const found = pending.filter(it => keys.includes(it.key));
+    const rest = pending.filter(it => !keys.includes(it.key));
+    C.openSheet('Confirmar ticket', `
+      <p class="sub">Esto es lo que he encontrado en el ticket. Desmarca lo que no sea correcto.</p>
+      ${found.map(row).join('')}
+      ${rest.length ? `<details class="bought"><summary>No aparecen en el ticket (${rest.length})</summary>${rest.map(row).join('')}</details>` : ''}
+      <button id="ticket-ok" class="btn" type="button">Marcar como comprados</button>`);
+    $('ticket-ok').onclick = () => {
+      const chosen = [...document.querySelectorAll('#sheet-body [data-ticket]:checked')].map(i => i.dataset.ticket);
+      C.closeSheet();
+      setList(P.markBought(C.state.list, chosen));
+      C.toast(chosen.length ? `${chosen.length} marcados como comprados` : 'No se ha marcado nada');
+    };
+  }
+
   function render(el) {
     if (C.ensureFilled) C.ensureFilled(); // las comidas sin plato se rellenan solas
     const all = items();
@@ -47,6 +82,10 @@
       <div class="toolbar">
         <button class="btn" type="button" data-act="copy">Copiar lista</button>
         <button class="btn ghost" type="button" data-act="uncheck">Desmarcar todo</button>
+        <button class="btn ghost cam-btn" type="button" data-act="ticket" aria-label="Escanear ticket">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+        </button>
+        <input id="ticket-file" type="file" accept="image/*" capture="environment" hidden>
       </div>
       ${bought.length ? `<details class="bought" ${boughtOpen ? 'open' : ''}><summary>Comprados (${bought.length})</summary>
         ${bought.map(rowHtml).join('')}</details>` : ''}
@@ -67,6 +106,7 @@
     const dt = el.querySelector('details.bought');
     if (dt) dt.addEventListener('toggle', () => { boughtOpen = dt.open; });
     $('add-btn').onclick = add;
+    $('ticket-file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) scanTicket(f); };
     $('add-name').onkeydown = e => { if (e.key === 'Enter') add(); };
 
     el.onchange = e => {
@@ -79,6 +119,7 @@
       const act = e.target.closest('[data-act]');
       if (rm) { setList(P.removeFromList(C.state.list, rm.dataset.remove)); C.toast('Quitado de la lista'); }
       else if (rs) setList(P.restoreToList(C.state.list, rs.dataset.restore));
+      else if (act && act.dataset.act === 'ticket') $('ticket-file').click();
       else if (act && act.dataset.act === 'uncheck') setList({ ...C.state.list, checked: {} });
       else if (act && act.dataset.act === 'copy') {
         const todo = items().filter(it => !it.checked);

@@ -35,6 +35,8 @@
       "apps/comidas/photos.js",
       "apps/comidas/planner.js",
       "apps/comidas/shopping.js",
+      "apps/comidas/ticketcore.js",
+      "apps/comidas/ticket.js",
       "apps/comidas/schedule.js",
       "apps/comidas/core.js",
       "apps/comidas/main.js",
@@ -44,6 +46,22 @@
       "apps/comidas/screens/compra.js",
       "apps/comidas/cloudsync.js",
       "apps/comidas/cloud.js"
+    ]
+  },
+  {
+    "id": "gastos",
+    "name": "Gastos",
+    "description": "Gastos y suscripciones: cuánto pagas y cuándo te cobran.",
+    "path": "apps/gastos/index.html",
+    "accent": "#12b76a",
+    "files": [
+      "apps/gastos/gastos.css",
+      "apps/gastos/gastoscore.js",
+      "apps/gastos/core.js",
+      "apps/gastos/main.js",
+      "apps/gastos/screens/resumen.js",
+      "apps/gastos/screens/subs.js",
+      "apps/gastos/screens/ajustes.js"
     ]
   },
   {
