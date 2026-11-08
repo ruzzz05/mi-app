@@ -137,7 +137,40 @@
     return menu ? slotKeys(menu).filter(k => !menu.plan[k]) : [];
   }
 
-  const api = { WEIGHTS, NEAR, SLOTS, slotKey, slotKeys, emptySlots, isAllowed, newMenu, fillMenu, rerollSlot, regenerateDay, excludeAndReplace };
+  // ---------- Segundo plato (o más) en una comida ----------
+  // menu.extras = { "<dia>-<comida|cena>": [{ id, name }] }. Va aparte de menu.plan para que cambiar,
+  // regenerar o rellenar el plato principal no lo toque.
+  const extrasOf = (menu, key) => ((menu && menu.extras && menu.extras[key]) || []).map(e => ({ ...e }));
+
+  function addExtra(menu, key, dish) {
+    const name = String((dish && dish.name) || '').trim();
+    if (!menu || !name || !slotKeys(menu).includes(key)) return menu;
+    const id = (dish && dish.id) || null;
+    const main = menu.plan[key];
+    const same = e => (id ? e.id === id : !e.id && R.norm(e.name) === R.norm(name));
+    if ((main && !main.empty && same(main)) || extrasOf(menu, key).some(same)) return menu;
+    return { ...menu, extras: { ...(menu.extras || {}), [key]: [...extrasOf(menu, key), { id, name }] } };
+  }
+
+  function removeExtra(menu, key, index) {
+    const rest = extrasOf(menu, key).filter((_, i) => i !== index);
+    const extras = { ...(menu.extras || {}) };
+    if (rest.length) extras[key] = rest; else delete extras[key];
+    return { ...menu, extras };
+  }
+
+  // Quita un plato borrado de los segundos platos de todas las comidas.
+  function dropDishFromExtras(menu, dishId) {
+    if (!menu || !menu.extras) return menu;
+    const extras = {};
+    Object.keys(menu.extras).forEach(k => {
+      const rest = menu.extras[k].filter(e => e.id !== dishId);
+      if (rest.length) extras[k] = rest;
+    });
+    return { ...menu, extras };
+  }
+
+  const api = { extrasOf, addExtra, removeExtra, dropDishFromExtras, WEIGHTS, NEAR, SLOTS, slotKey, slotKeys, emptySlots, isAllowed, newMenu, fillMenu, rerollSlot, regenerateDay, excludeAndReplace };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Planner = Object.assign(root.Planner || {}, api);
 })(typeof window !== 'undefined' ? window : globalThis);

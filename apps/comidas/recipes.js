@@ -30,7 +30,8 @@
     return {
       id: raw.id || newId(),
       name: String(raw.name || '').trim(),
-      ingredients: ingredientsOf(raw).map(({ name, qty }) => ({ name, qty }))
+      ingredients: ingredientsOf(raw).map(({ name, qty }) => ({ name, qty })),
+      ...(typeof raw.photo === 'string' && raw.photo ? { photo: raw.photo } : {})   // id de su foto
     };
   }
 

@@ -52,6 +52,26 @@ const readRemote = async () => P.fromFirestoreDoc(await request('GET', docUrl())
 const writeRemote = data =>
   request('PATCH', docUrl() + '?updateMask.fieldPaths=updatedAt&updateMask.fieldPaths=json', P.toFirestoreFields(data));
 
+// Fotos de recetas: un documento por foto en users/{uid}/fotos/{id}, aparte del estado para no
+// acercarse al límite de 1 MiB. photos.js las pide y las sube a través de Photos.remote.
+const photoUrl = id => `${docUrl()}/fotos/${id}`;
+if (window.Photos) {
+  window.Photos.remote = {
+    async get(id) {
+      if (!(await connect())) throw new Error('sin conexión');
+      return P.photoFromFirestore(await request('GET', photoUrl(id)));
+    },
+    async put(id, dataUrl) {
+      if (!(await connect())) throw new Error('sin conexión');
+      await request('PATCH', photoUrl(id) + '?updateMask.fieldPaths=data', P.photoToFirestore(dataUrl));
+    },
+    async del(id) {
+      if (!(await connect())) throw new Error('sin conexión');
+      await request('DELETE', photoUrl(id));
+    }
+  };
+}
+
 // Los datos del móvil pertenecen a una cuenta; si ahora entra otra, no se suben a la nueva.
 function checkOwner() {
   const action = P.ownerAction(store.get(OWNER_KEY), uid());
@@ -113,6 +133,7 @@ async function push() {
 
 // Devuelve true si no queda nada pendiente (no había nada o se subió) y false si falló.
 async function flush() {
+  if (window.Photos) window.Photos.flushPending();   // fotos que quedaron sin subir (no espera ni condiciona la subida del estado)
   if (!dirty) return true;
   if (!(await connect())) return false;
   try { await push(); return true; }

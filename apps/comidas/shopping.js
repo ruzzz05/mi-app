@@ -23,10 +23,13 @@
     const past = now && menu ? new Set(R.pastSlotKeys(menu, now)) : null;
     Object.keys(plan).sort((a, b) => keyOrder(a) - keyOrder(b)).forEach(k => {
       if (past && past.has(k)) return;
-      const dish = dishes.find(x => x.id === plan[k].id);
-      if (!dish) return;
-      R.ingredientsOf(dish).forEach(ing => {
-        if (!list.removed.includes(ing.key)) bump(ing.key, ing.name, ing.qty, dish.name, false);
+      // Plato principal y segundos platos de la comida; los de texto libre no tienen ingredientes
+      [plan[k], ...R.extrasOf(menu, k)].forEach(entry => {
+        const dish = dishes.find(x => x.id === entry.id);
+        if (!dish) return;
+        R.ingredientsOf(dish).forEach(ing => {
+          if (!list.removed.includes(ing.key)) bump(ing.key, ing.name, ing.qty, dish.name, false);
+        });
       });
     });
     list.extras.forEach(ex => bump(ex.key, ex.name, ex.qty, null, true));

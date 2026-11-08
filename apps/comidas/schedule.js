@@ -37,7 +37,7 @@
     const rest = keys.slice(at + 1).map(k => { const [d, m] = k.split('-'); return { key: k, day: parseInt(d, 10), meal: m }; });
     const today = rest.filter(x => x.day === dayIdx);
     const chosen = today.length ? today : rest.filter(x => x.day === dayIdx + 1);
-    return chosen.map(x => ({ dayOffset: x.day - dayIdx, meal: x.meal, entry: entryOf(menu, x.key) }));
+    return chosen.map(x => ({ dayOffset: x.day - dayIdx, meal: x.meal, entry: entryOf(menu, x.key), extras: R.extrasOf(menu, x.key) }));
   }
 
   // Qué toca ahora según el menú: { status: 'none'|'notStarted'|'active'|'finished', ... }
@@ -47,8 +47,8 @@
     const dayIdx = daysBetween(menu.startDate, today);
     const base = { startDate: menu.startDate, totalDays: menu.days, date: today };
 
-    if (dayIdx < 0) return { ...base, status: 'notStarted', current: null, upcoming: [] };
-    if (dayIdx >= menu.days) return { ...base, status: 'finished', current: null, upcoming: [] };
+    if (dayIdx < 0) return { ...base, status: 'notStarted', current: null, currentExtras: [], upcoming: [] };
+    if (dayIdx >= menu.days) return { ...base, status: 'finished', current: null, currentExtras: [], upcoming: [] };
 
     const firstDayDinnerOnly = dayIdx === 0 && menu.firstMeal === 'cena';
     const meal = firstDayDinnerOnly ? 'cena' : mealNow(now);
@@ -58,6 +58,7 @@
       dayNumber: dayIdx + 1,
       meal,
       current: entryOf(menu, R.slotKey(dayIdx, meal)),
+      currentExtras: R.extrasOf(menu, R.slotKey(dayIdx, meal)),
       upcoming: upcomingMeals(menu, dayIdx, meal)
     };
   }

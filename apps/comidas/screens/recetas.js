@@ -21,12 +21,14 @@
       ${dishes.length
         ? dishes.map(d => `
             <button class="card-row" type="button" data-act="edit" data-id="${d.id}">
+              ${d.photo ? `<img class="thumb" data-photo="${esc(d.photo)}" alt="">` : ''}
               <span>${esc(d.name)}<small>${esc(summary(d))}</small></span>
             </button>`).join('')
         : `<div class="hero"><h2>Escribe tus recetas</h2>
             <p>Añade todas las que sepas, con sus ingredientes. Con ellas la app montará tu menú.</p>
             <button class="btn big" type="button" data-act="new">Añadir la primera</button></div>`}`;
 
+    C.hydratePhotos(el);
     el.onclick = e => {
       const b = e.target.closest('[data-act]');
       if (!b) return;
@@ -50,6 +52,15 @@
     C.openSheet(dish ? 'Editar receta' : 'Nueva receta', `
       <label class="form-label" for="dish-name">Nombre</label>
       <input id="dish-name" class="field" type="text" autocomplete="off" value="${dish ? esc(dish.name) : ''}">
+      <label class="form-label">Foto</label>
+      <div class="photo-box">
+        <img id="photo-img" class="photo-preview" alt="" ${dish && dish.photo ? `data-photo="${esc(dish.photo)}"` : ''}>
+        <div class="photo-actions">
+          <button id="photo-pick" class="btn ghost" type="button">Añadir foto</button>
+          <button id="photo-clear" class="btn ghost hidden" type="button">Quitar foto</button>
+        </div>
+        <input id="photo-file" type="file" accept="image/*" hidden>
+      </div>
       <label class="form-label">Ingredientes</label>
       ${tags.length ? `<div id="ing-tags" class="chips">${tags.map(t =>
         `<button class="chip" type="button" data-tag="${esc(t.key)}" data-name="${esc(t.name)}">${esc(t.name)}</button>`).join('')}</div>` : ''}
@@ -59,6 +70,32 @@
         ${dish ? '<button id="dish-delete" class="btn danger" type="button">Eliminar</button>' : ''}
         <button id="dish-save" class="btn" type="button">Guardar</button>
       </div>`);
+
+    C.hydratePhotos($('sheet-body'));
+
+    // Foto: solo se guarda al pulsar Guardar (si cierras el formulario, no se cambia nada).
+    let photoData = null;        // foto nueva ya reducida
+    let photoRemoved = false;    // se pidió quitar la que tenía
+    const hasPhoto = () => !!photoData || !!(dish && dish.photo && !photoRemoved);
+    const syncPhotoButtons = () => {
+      $('photo-pick').textContent = hasPhoto() ? 'Cambiar foto' : 'Añadir foto';
+      $('photo-clear').classList.toggle('hidden', !hasPhoto());
+    };
+    $('photo-pick').onclick = () => $('photo-file').click();
+    $('photo-file').onchange = e => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      window.Photos.fromFile(file)
+        .then(data => { photoData = data; photoRemoved = false; $('photo-img').src = data; syncPhotoButtons(); })
+        .catch(err => C.toast(err.message || 'No se pudo usar esa foto'));
+    };
+    $('photo-clear').onclick = () => {
+      photoData = null; photoRemoved = true;
+      $('photo-img').removeAttribute('src');
+      syncPhotoButtons();
+    };
+    syncPhotoButtons();
 
     const box = $('ing-rows');
     $('ing-add').onclick = () => {
@@ -91,15 +128,29 @@
       const name = $('dish-name').value.trim();
       if (!name) { C.toast('La receta necesita un nombre'); return; }
       const ingredients = P.buildIngredients(names(), dish);
+      let photoId = dish ? dish.photo || null : null;
+      if (photoData) {                       // foto nueva: id nuevo, y la anterior se borra
+        const fresh = P.newPhotoId();
+        window.Photos.put(fresh, photoData);
+        if (photoId) window.Photos.remove(photoId);
+        photoId = fresh;
+      } else if (photoRemoved && photoId) {
+        window.Photos.remove(photoId);
+        photoId = null;
+      }
       if (dish) {
         dish.name = name;
         dish.ingredients = ingredients;
+        Object.assign(dish, P.withPhoto(dish, photoId));
+        if (!photoId) delete dish.photo;
         ['menu', 'draft'].forEach(k => {
           const m = C.state[k];
-          if (m) Object.values(m.plan).forEach(e => { if (e.id === dish.id) e.name = name; });
+          if (!m) return;
+          Object.values(m.plan).forEach(e => { if (e.id === dish.id) e.name = name; });
+          Object.values(m.extras || {}).forEach(list => list.forEach(e => { if (e.id === dish.id) e.name = name; }));
         });
       } else {
-        C.state.dishes.push(P.normalizeDish({ name, ingredients }));
+        C.state.dishes.push(P.withPhoto(P.normalizeDish({ name, ingredients }), photoId));
       }
       C.save(); C.closeSheet(); C.render();
     };

@@ -85,9 +85,18 @@
       if (current && screens[current]) screens[current].render($('screen-' + current));
     },
 
+    // Pone la foto de cada <img data-photo="id"> (desde el dispositivo o la nube). Sin foto, la imagen sigue oculta.
+    hydratePhotos(root) {
+      root.querySelectorAll('img[data-photo]').forEach(img => {
+        window.Photos.get(img.dataset.photo).then(src => { if (src) { img.src = src; img.classList.add('loaded'); } });
+      });
+    },
+
     // Quita un plato borrado del menú y del borrador (los huecos se rellenan con otro).
     dropDish(id) {
       const s = C.state;
+      const gone = s.dishes.find(d => d.id === id);
+      if (gone && gone.photo) window.Photos.remove(gone.photo);
       s.dishes = s.dishes.filter(d => d.id !== id);
       ['menu', 'draft'].forEach(k => {
         const m = s[k];
@@ -95,7 +104,7 @@
         const plan = { ...m.plan };
         Object.keys(plan).forEach(key => { if (plan[key].id === id) delete plan[key]; });
         const exclusions = m.exclusions.filter(ex => ex.dishId !== id);
-        s[k] = P.fillMenu({ dishes: s.dishes, menu: { ...m, plan, exclusions } });
+        s[k] = P.fillMenu({ dishes: s.dishes, menu: P.dropDishFromExtras({ ...m, plan, exclusions }, id) });
       });
     },
 

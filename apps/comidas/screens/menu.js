@@ -113,9 +113,11 @@
       const slots = P.SLOTS.filter(s => keys.includes(P.slotKey(d, s))).map(s => {
         const e = m.plan[P.slotKey(d, s)];
         const has = e && !e.empty;
+        const extras = P.extrasOf(m, P.slotKey(d, s));
         return `<button class="slot" type="button" data-act="slot" data-day="${d}" data-slot="${s}">
           <span class="label">${LABEL[s]}</span>
-          <span class="name ${has ? '' : 'empty'}">${has ? esc(e.name) : 'Sin plato'}</span>
+          <span class="name ${has ? '' : 'empty'}">${has ? esc(e.name) : 'Sin plato'}${extras.length
+            ? `<small class="extras">+ ${extras.map(x => esc(x.name)).join(' + ')}</small>` : ''}</span>
         </button>`;
       }).join('');
       days.push(`<div class="day"><h3><span>${dayLabel(m.startDate, d)}</span></h3>${slots}</div>`);
@@ -148,7 +150,15 @@
     const key = P.slotKey(d, slot);
     const cur = m.plan[key];
     const set = menu => { C.state[w] = menu; C.save(); C.closeSheet(); C.render(); };
+    const extras = P.extrasOf(m, key);
     C.openSheet(`${dayLabel(m.startDate, d)} · ${LABEL[slot]}`, `
+      <div id="extras-box">
+        ${extras.map((x, i) => `<div class="extra-row"><span>+ ${esc(x.name)}</span>
+          <button class="icon-btn" type="button" data-rm-extra="${i}" aria-label="Quitar ${esc(x.name)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+          </button></div>`).join('')}
+        <button id="add-extra" class="btn ghost" type="button" style="width:100%;margin-bottom:14px">Añadir otro plato a esta comida</button>
+      </div>
       ${cur && cur.empty
         ? `<button id="pick-random" class="remove-btn neutral" type="button">Poner un plato al azar</button>
         <p class="hint remove-hint">Esta comida está vacía a propósito.</p>`
@@ -159,6 +169,12 @@
       <div class="sheet-actions">
         <button id="pick-use" class="btn" type="button">Usar texto escrito</button>
       </div>`);
+
+    $('extras-box').onclick = e => {
+      const rm = e.target.closest('[data-rm-extra]');
+      if (rm) { set(P.removeExtra(m, key, +rm.dataset.rmExtra)); C.toast('Plato quitado de esta comida'); return; }
+      if (e.target.closest('#add-extra')) openExtra(w, d, slot);
+    };
 
     const input = $('pick-input');
     const list = $('pick-list');
@@ -207,6 +223,44 @@
         C.toast(now && now.name !== cur.name ? `Cambiado por ${now.name}` : 'No hay otro plato para cambiarlo');
       };
     }
+  }
+
+  // ---------- Añadir otro plato a una comida (además del principal) ----------
+  function openExtra(w, d, slot) {
+    const m = C.state[w];
+    const key = P.slotKey(d, slot);
+    const add = dish => {
+      const next = P.addExtra(m, key, dish);
+      if (next === m) { C.toast('Ya está en esta comida'); return; }
+      C.state[w] = next; C.save(); C.closeSheet(); C.render();
+      C.toast(`Añadido: ${dish.name}`);
+    };
+    C.openSheet(`${dayLabel(m.startDate, d)} · ${LABEL[slot]} · Otro plato`, `
+      <input id="extra-input" class="field" type="text" placeholder="Busca o escribe un plato" autocomplete="off">
+      <div id="extra-list" style="margin-top:14px"></div>
+      <div class="sheet-actions"><button id="extra-use" class="btn" type="button">Usar texto escrito</button></div>`);
+    const input = $('extra-input');
+    const list = $('extra-list');
+    const paint = () => {
+      const q = input.value.trim().toLowerCase();
+      const found = C.state.dishes.filter(x => x.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+      list.innerHTML = found.length
+        ? found.map(x => `<button class="card-row" type="button" data-id="${x.id}">${esc(x.name)}</button>`).join('')
+        : '<p class="empty-msg">Sin coincidencias. Puedes usar el texto escrito.</p>';
+    };
+    input.oninput = paint; paint();
+    list.onclick = e => {
+      const r = e.target.closest('[data-id]');
+      if (!r) return;
+      const dish = C.state.dishes.find(x => x.id === r.dataset.id);
+      add({ id: dish.id, name: dish.name });
+    };
+    $('extra-use').onclick = () => {
+      const text = input.value.trim();
+      if (!text) { C.toast('Escribe un plato primero'); return; }
+      const known = C.state.dishes.find(x => x.name.toLowerCase() === text.toLowerCase());
+      add(known ? { id: known.id, name: known.name } : { id: null, name: text });
+    };
   }
 
   C.register('menu', { render });

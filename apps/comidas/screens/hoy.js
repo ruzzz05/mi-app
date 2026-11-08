@@ -11,13 +11,28 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   };
 
+  const dishOf = entry => (entry && entry.id ? C.state.dishes.find(d => d.id === entry.id) : null);
+
   const ingredientsHtml = entry => {
-    const dish = entry && entry.id ? C.state.dishes.find(d => d.id === entry.id) : null;
+    const dish = dishOf(entry);
     const list = dish ? P.ingredientsOf(dish) : [];
     if (!list.length) return '';
     return `<ul class="ing-list">${list.map(i =>
       `<li>${esc(i.name)}${i.qty === 1 ? '' : ` <span>×${P.formatQty(i.qty)}</span>`}</li>`).join('')}</ul>`;
   };
+
+  // Un plato de la comida: foto (si su receta tiene), nombre e ingredientes.
+  const plateHtml = entry => {
+    const dish = dishOf(entry);
+    return `<div class="plate">
+      ${dish && dish.photo ? `<img class="plate-photo" data-photo="${esc(dish.photo)}" alt="">` : ''}
+      <strong>${esc(entry.name)}</strong>
+      ${ingredientsHtml(entry)}
+    </div>`;
+  };
+
+  // "Sopa + Pechugas" para las filas discretas de "Después"
+  const namesOf = (entry, extras) => [entry, ...extras].filter(Boolean).map(e => e.name).join(' + ');
 
   function render(el) {
     if (C.promoteDraft) C.promoteDraft(); // un borrador antiguo pasa a ser el menú activo
@@ -38,20 +53,20 @@
         <p>Los ${v.totalDays} días han pasado. ¿Preparamos el siguiente?</p>
         <button class="btn big" type="button" data-go="menu">Crear otro menú</button></div>`;
     } else {
-      const cur = v.current;
+      const plates = [v.current, ...v.currentExtras].filter(Boolean);
       el.innerHTML = `
         <p class="eyebrow">Día ${v.dayNumber} de ${v.totalDays}</p>
         <h2 class="today-date">${esc(longDate(v.date))}</h2>
         <div class="today-card">
           <span class="label">Ahora toca · ${LABEL[v.meal]}</span>
-          <strong>${cur ? esc(cur.name) : 'Sin plato para esta comida'}</strong>
-          ${ingredientsHtml(cur)}
+          ${plates.length ? plates.map(plateHtml).join('') : '<strong>Sin plato para esta comida</strong>'}
         </div>
         ${v.upcoming.length ? `<p class="next-title">Después</p>${v.upcoming.map(u => `
           <div class="next-row">
             <span class="next-when">${u.dayOffset === 0 ? 'Hoy' : 'Mañana'} · ${LABEL[u.meal]}</span>
-            <span class="next-name">${u.entry ? esc(u.entry.name) : 'Sin plato'}</span>
+            <span class="next-name">${esc(namesOf(u.entry, u.extras) || 'Sin plato')}</span>
           </div>`).join('')}` : ''}`;
+      C.hydratePhotos(el);
     }
   }
 

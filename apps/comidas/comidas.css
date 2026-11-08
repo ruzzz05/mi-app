@@ -436,3 +436,21 @@ textarea.field { min-height: 120px; padding: 12px 16px; resize: vertical; line-h
 
 .remove-btn.neutral { background: var(--btn-bg); color: var(--btn-ink); }
 .card-row.pick-empty { border-style: dashed; color: var(--ink-2); }
+
+/* Fotos de recetas */
+img[data-photo]:not([src]), .photo-preview:not([src]) { display: none; }
+.card-row .thumb { flex: none; width: 52px; height: 52px; border-radius: 12px; object-fit: cover; margin-right: 12px; }
+.card-row:has(.thumb) { display: flex; align-items: center; }
+.photo-box { display: flex; flex-direction: column; gap: 10px; }
+.photo-preview { width: 100%; max-height: 220px; object-fit: cover; border-radius: 14px; }
+.photo-actions { display: flex; gap: 8px; }
+.photo-actions .btn { flex: 1; }
+
+/* Hoy: varios platos en la misma comida */
+.today-card .plate { display: flex; flex-direction: column; gap: 10px; }
+.today-card .plate + .plate { padding-top: 16px; border-top: 1px solid color-mix(in srgb, var(--btn-ink) 22%, transparent); }
+.plate-photo { width: 100%; max-height: 200px; object-fit: cover; border-radius: 14px; }
+
+/* Menú: segundos platos */
+.slot .name small.extras { display: block; margin-top: 2px; font-weight: 500; font-size: 13px; color: var(--ink-2); }
+.extra-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0 6px 2px; font-weight: 600; }

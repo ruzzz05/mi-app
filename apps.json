@@ -31,6 +31,8 @@
     "files": [
       "apps/comidas/comidas.css",
       "apps/comidas/recipes.js",
+      "apps/comidas/photoscore.js",
+      "apps/comidas/photos.js",
       "apps/comidas/planner.js",
       "apps/comidas/shopping.js",
       "apps/comidas/schedule.js",
