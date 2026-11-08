@@ -98,12 +98,12 @@
       row.append(
         h('span', { class: 'set-n' }, i + 1),
         h('input', {
-          class: 'field num', type: 'number', inputmode: 'numeric', min: 0, max: MAX_VALUE, value: s.reps,
+          class: 'field num', type: 'text', inputmode: 'numeric', 'data-f': 'reps', value: s.reps, autocomplete: 'off',
           'aria-label': `Repeticiones de la serie ${i + 1}`, oninput: e => { s.reps = toNum(e.target.value); onChange(); }
         }),
         h('span', { class: 'unit' }, 'reps'),
         h('input', {
-          class: 'field num', type: 'number', inputmode: 'decimal', step: 'any', min: 0, max: MAX_VALUE, value: s.weight,
+          class: 'field num', type: 'text', inputmode: 'decimal', 'data-f': 'weight', value: String(s.weight).replace('.', ','), autocomplete: 'off',
           'aria-label': `Peso de la serie ${i + 1}`, oninput: e => { s.weight = toNum(e.target.value); onChange(); }
         }),
         h('span', { class: 'unit' }, 'kg'),
@@ -115,7 +115,7 @@
       return row;
     });
 
-    return h('div', { class: 'ex-block' },
+    return h('div', { class: 'ex-block eblock' },
       h('div', { class: 'ex-head' },
         h('button', { class: 'ex-name', type: 'button', onclick: () => openExercise(ex.exId) }, A.exerciseName(ex.exId)),
         h('div', { class: 'ex-ctrl' },
@@ -124,7 +124,7 @@
           h('button', { type: 'button', 'aria-label': 'Quitar ejercicio', onclick: () => onStructure('remove') }, '×'))),
       rows,
       h('button', {
-        class: 'mini', type: 'button',
+        class: 'mini', type: 'button', 'data-act': 'add-set',
         onclick: () => {
           const last = ex.sets[ex.sets.length - 1];
           ex.sets.push({ reps: last ? last.reps : 10, weight: last ? last.weight : 0, done: false });

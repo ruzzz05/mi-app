@@ -77,26 +77,26 @@
       }
       return out;
     };
-    const row = (s, endedRow) => `<button class="row row-btn ${s.paused || endedRow ? 'dim' : ''}" type="button" data-edit="${esc(s.id)}">
-      <span class="row-main"><b>${esc(s.name)}</b><small>${endedRow ? 'Terminó el ' + dayLabel(s.until) : detail(s)}</small></span>
-      <span class="amt">${eur(s.amount)}<small>/${PERIOD[s.period]}</small></span></button>`;
+    const row = (s, endedRow) => `<button class="subrow ${s.paused || endedRow ? 'dim' : ''}" type="button" data-edit="${esc(s.id)}">
+      <span class="ico" style="--k:${G.colorOf('Suscripciones')}">${esc(s.name[0].toUpperCase())}</span>
+      <span class="tx"><b>${esc(s.name)}</b><small>${endedRow ? 'Terminó el ' + dayLabel(s.until) : detail(s)}</small></span>
+      <span class="ma">${eur(s.amount)}<small>/${PERIOD[s.period]}</small></span></button>`;
 
     el.innerHTML = `
-      <section class="pulse subs-pulse">
-        <div class="pulse-month">Suscripciones</div>
-        <div class="pulse-total">${eur(t.monthly)}<small>/mes</small></div>
-        <div class="pulse-lines"><p>${eur(t.yearly)} al año · ${t.count} activa${t.count === 1 ? '' : 's'}</p></div>
+      <section class="sub-hero">
+        <small>Suscripciones al mes</small>
+        <div class="big">${eur(t.monthly)}</div>
+        <small>${eur(t.yearly)} al año · ${t.count} activa${t.count === 1 ? '' : 's'}</small>
       </section>
 
-      ${detected.length ? `<h3 class="sec">He encontrado cobros repetidos</h3>
-        <div class="list">${detected.map((d, i) => `
-          <div class="row"><span class="row-main"><b>${esc(d.name)}</b><small>${eur(d.amount)} cada ${PERIOD[d.period]} · ${d.count} cobros</small></span>
+      ${detected.length ? `<div class="found-box"><b>He encontrado cobros repetidos</b>
+        ${detected.map((d, i) => `<div class="found"><div class="tx"><b>${esc(d.name)}</b><small>${eur(d.amount)} cada ${PERIOD[d.period]} · ${d.count} cobros</small></div>
           <button class="btn small" type="button" data-adopt="${i}">Añadir</button></div>`).join('')}</div>` : ''}
 
-      <div class="sec-row"><h3 class="sec">Tus suscripciones</h3><button id="sb-add" class="btn small" type="button">Añadir</button></div>
-      ${sorted.length ? `<div class="list">${sorted.map(s => row(s, false)).join('')}</div>`
+      <div class="secx"><h3>Tus suscripciones</h3><button id="sb-add" class="btn small" type="button">+ Añadir</button></div>
+      ${sorted.length ? `<div class="lst">${sorted.map(s => row(s, false)).join('')}</div>`
         : '<p class="empty-msg">Aún no hay suscripciones. Añade Netflix, Spotify, el gimnasio…</p>'}
-      ${ended.length ? `<details class="ended"><summary>Terminadas (${ended.length})</summary><div class="list">${ended.map(s => row(s, true)).join('')}</div></details>` : ''}`;
+      ${ended.length ? `<details class="ended"><summary>Terminadas (${ended.length})</summary><div class="lst">${ended.map(s => row(s, true)).join('')}</div></details>` : ''}`;
 
     $('sb-add').onclick = () => openSub(null);
     el.onclick = e => {

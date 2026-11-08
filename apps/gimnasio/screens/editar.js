@@ -18,9 +18,9 @@
   };
 
   function leave() {
-    if (JSON.stringify(draft) !== original && !confirm('Hay cambios sin guardar. ¿Salir sin guardarlos?')) return;
-    draft = null;
-    A.go('rutinas');
+    const out = () => { draft = null; A.go('rutinas'); };
+    if (JSON.stringify(draft) === original) { out(); return; }
+    A.confirmSheet({ title: 'Hay cambios sin guardar', text: '¿Salir sin guardarlos?', okLabel: 'Salir sin guardar', act: 'leave-ok', danger: true, cancelLabel: 'Seguir editando', onOk: out });
   }
 
   function save() {

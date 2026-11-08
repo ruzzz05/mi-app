@@ -147,6 +147,17 @@
       $('sheet').setAttribute('aria-hidden', 'true');
     },
 
+    // Pregunta dentro de la app (en lugar de confirm()): hoja con "Cancelar" y el botón que confirma.
+    // act es el data-act del botón que confirma (para identificarlo en los tests).
+    confirmSheet({ title, text, okLabel, act, danger, onOk, cancelLabel }) {
+      App.openSheet(title, [
+        text ? h('p', { class: 'sheet-text' }, text) : null,
+        h('div', { class: 'sheet-actions' },
+          h('button', { class: 'btn ghost', type: 'button', onclick: App.closeSheet }, cancelLabel || 'Cancelar'),
+          h('button', { class: 'btn' + (danger ? ' bad' : ''), type: 'button', 'data-act': act || 'ok', onclick: () => { App.closeSheet(); onOk(); } }, okLabel || 'Aceptar'))
+      ]);
+    },
+
     sheetOpen: () => $('sheet').classList.contains('open'),
 
     register(name, screen) { screens[name] = screen; },

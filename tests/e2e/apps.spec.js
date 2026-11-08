@@ -15,15 +15,19 @@ for (const [nombre, ruta] of [
   });
 }
 
-test('Gimnasio: el botón de tema recorre claro, oscuro, aqua y niebla', async ({ page }) => {
-  await openApp(page, 'apps/gimnasio/index.html');
-  const theme = () => page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-  const seen = [];
-  for (let i = 0; i < 4; i++) {
-    await page.locator('.theme-toggle:not(#sync-now)').click();
-    seen.push(await theme());
+test('el tema de color se elige en una app y vale también para las otras', async ({ page }) => {
+  const palette = () => page.evaluate(() => document.documentElement.getAttribute('data-palette'));
+  for (const ruta of ['apps/gimnasio/index.html', 'apps/comidas/index.html']) {
+    await openApp(page, ruta);
+    await page.locator('#palette-btn').click();
+    await expect(page.locator('#palette-picker [data-palette-id]')).toHaveCount(9);
+    await page.locator('#palette-picker [data-palette-id="rosa-pastel"]').click();
+    expect(await palette()).toBe('rosa-pastel');
+    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(bg).toBe('rgb(252, 235, 241)');
   }
-  expect(new Set(seen)).toEqual(new Set(['light', 'dark', 'aqua', 'niebla']));
+  await openApp(page, 'apps/gimnasio/index.html');
+  expect(await palette()).toBe('rosa-pastel'); // sigue elegido al abrir la otra app
 });
 
 test('Gimnasio: las pestañas cambian de pantalla', async ({ page }) => {

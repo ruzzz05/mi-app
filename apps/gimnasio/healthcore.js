@@ -174,7 +174,29 @@
     return { score, label, parts, provisional: !(parts.hrv !== undefined && parts.rhr !== undefined) };
   }
 
-  const api = { todayRange, sumRollup, tokenValid, summaryFresh, missingScopes, parseDay, lastDays, dailyValues,
+
+  // Distancia del día en km. Cada punto trae un campo *Sum cuyo nombre dice la unidad
+  // (millimetersSum, metersSum, kilometersSum). Si no se reconoce, se toma como metros.
+  function distanceKm(response) {
+    const points = response && Array.isArray(response.rollupDataPoints) ? response.rollupDataPoints : [];
+    let km = null;
+    for (const point of points) {
+      for (const value of Object.values(point || {})) {
+        if (!value || typeof value !== 'object') continue;
+        for (const [key, v] of Object.entries(value)) {
+          if (!/Sum$/.test(key)) continue;
+          const n = num(v);
+          if (n === null) continue;
+          const factor = /milli/i.test(key) ? 1e-6 : /kilo/i.test(key) ? 1 : 1e-3;
+          km = (km || 0) + n * factor;
+          break;
+        }
+      }
+    }
+    return km === null ? null : Math.round(km * 10) / 10;
+  }
+
+  const api = { todayRange, sumRollup, distanceKm, tokenValid, summaryFresh, missingScopes, parseDay, lastDays, dailyValues,
                 sleepNights, stepsByDay, baseline, recoveryScore };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.HealthCore = Object.assign(root.HealthCore || {}, api);

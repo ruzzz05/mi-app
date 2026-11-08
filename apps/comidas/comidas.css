@@ -1,71 +1,10 @@
-/* Tema de Mi-Menu (claro y oscuro): los mismos colores que el Gimnasio, con acento naranja. */
+/* Colores por defecto. El tema elegido (shared/palette.js) los sustituye al cargar la página. */
 :root {
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f2f2f2;
-  --ink: #0a0a0a;
-  --ink-2: #4a4a4a;
-  --ink-3: #8a8a8a;
-  --line: #e4e4e4;
-  --btn-bg: #ff6b35;
-  --btn-ink: #0a0a0a;
-  --accent: #ff6b35;
-  --accent-soft: #ffe3d6;
-  --tab-ink: #b8400f;
-  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.08);
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0a0a0a;
-    --surface: #151515;
-    --surface-2: #212121;
-    --ink: #fafafa;
-    --ink-2: #b8b8b8;
-    --ink-3: #7c7c7c;
-    --line: #2a2a2a;
-    --btn-bg: #ffffff;
-    --btn-ink: #0a0a0a;
-    --accent: #ff6b35;
-    --accent-soft: #33160a;
-    --tab-ink: #ff8c5a;
-    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0a0a0a;
-  --surface: #151515;
-  --surface-2: #212121;
-  --ink: #fafafa;
-  --ink-2: #b8b8b8;
-  --ink-3: #7c7c7c;
-  --line: #2a2a2a;
-  --btn-bg: #ffffff;
-  --btn-ink: #0a0a0a;
-  --accent: #ff6b35;
-  --accent-soft: #33160a;
-  --tab-ink: #ff8c5a;
-  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
-  color-scheme: dark;
-}
-
-/* Tercer modo, cálido: fondo crema anaranjado (#FFDAA6) con detalles en marrón chocolate. */
-:root[data-theme="warm"] {
-  --bg: #FFDAA6;
-  --surface: #FFE9CC;
-  --surface-2: #FFE3BD;
-  --ink: #2b1a10;
-  --ink-2: #5a3b27;
-  --ink-3: #7a5236;
-  --line: #E2B987;
-  --btn-bg: #2b1a10;
-  --btn-ink: #FFDAA6;
-  --accent: #FFDAA6;
-  --accent-soft: #FFF1DB;
-  --tab-ink: #2b1a10;
-  --shadow: 0 1px 2px rgba(80,40,10,.10), 0 8px 24px rgba(80,40,10,.14);
-  color-scheme: light;
+  --bg: #0A0A0A; --surface: #171717; --surface-2: #222222; --ink: #F5F5F5; --ink-2: #CFCFCF; --ink-3: #8C8C8C; --line: #2A2A2A;
+  --btn-bg: #14E0D0; --btn-ink: #021B19; --accent: #14E0D0; --accent-soft: #0F3A37; --tab-ink: #14E0D0; --tab-bg: #171717;
+  --tabbg: #171717; --tabink: #8C8C8C; --tabonbg: #14E0D0; --tabonink: #021B19; --ok: #14E0D0; --on-ok: #021B19;
+  --lv0: #262626; --lv1: #0F4A46; --lv2: #0C7F77; --lv3: #10B3A7; --lv4: #14E0D0;
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45); color-scheme: dark;
 }
 
 /* La app ocupa exactamente la pantalla (no depende de vh/dvh, que iOS calcula mal al abrir
@@ -484,3 +423,34 @@ input[type="search"].field { -webkit-appearance: none; appearance: none; }
 @media (prefers-reduced-motion: reduce) { .tk-step.active .tk-dot { animation: none; } }
 
 .toolbar .cam-btn { flex: none; min-width: 56px; }
+
+/* ===== Diseño "Mercado": tarjetas redondas, títulos gruesos y barra inferior de píldora ===== */
+:root { --radius: 22px; --serif: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif; --soft: color-mix(in srgb, var(--ink) 8%, transparent); --soft2: color-mix(in srgb, var(--ink) 16%, transparent); }
+.screen-head h2, .today-date, .hero h2, .sheet-head h2 { font-weight: 800; letter-spacing: -.03em; }
+.today-date { font-size: 30px; line-height: 1.05; margin-bottom: 14px; }
+.eyebrow, .next-title, .form-label, .slot .label, .next-when, .today-card .label { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 700; }
+.today-card { border-radius: 26px; box-shadow: none; padding: 20px; }
+.today-card strong { font-size: 30px; font-weight: 800; letter-spacing: -.03em; line-height: 1.05; }
+.today-card .label { opacity: .8; }
+.next-row { background: var(--surface); border-radius: 18px; }
+.day { border: 0; border-radius: 24px; box-shadow: none; padding-bottom: 6px; }
+.day h3 { background: transparent; border: 0; font-weight: 800; padding: 14px 16px 6px; }
+.slot { width: calc(100% - 16px); margin: 0 8px 6px; border-radius: 16px; background: var(--soft); min-height: 52px; }
+.slot + .slot { border-top: 0; }
+.slot:active { background: var(--soft2); }
+.card-row, .buy, .opt { border: 0; border-radius: 20px; background: var(--surface); }
+.card-row:active { background: var(--soft2); }
+.hero { border: 0; border-radius: 26px; box-shadow: none; background: var(--surface); }
+.btn.big { box-shadow: none; border-radius: 20px; }
+.btn.ghost { border: 0; background: var(--soft); color: var(--ink); }
+.btn.danger { border: 0; box-shadow: inset 0 0 0 1px var(--soft2); }
+.mini { border: 0; background: var(--soft); color: var(--ink); }
+.chip { border-color: transparent; background: var(--soft); }
+.field { border-radius: 16px; }
+.new-menu-btn { background: var(--btn-bg); color: var(--btn-ink); border: 0; box-shadow: none; }
+.sheet-panel { border-radius: 28px 28px 0 0; }
+.tabbar { margin: 6px 14px max(12px, calc(env(safe-area-inset-bottom) - 6px)); background: var(--tabbg); border: 0; border-radius: 28px; box-shadow: 0 10px 24px rgba(0,0,0,.28); }
+.tabbar button { color: var(--tabink); font-size: 10.5px; letter-spacing: 0; }
+.tabbar button.active { background: var(--tabonbg); color: var(--tabonink); }
+.toast { background: var(--ink); color: var(--bg); }
+.tk-photo img { border-color: var(--soft2); }

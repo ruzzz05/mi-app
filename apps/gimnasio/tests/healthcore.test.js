@@ -38,3 +38,24 @@ test('summaryFresh: mismo día y menos de 2 minutos', () => {
   assert.eq(H.summaryFresh({ day: '2026-02-09', at: now - 1000 }, '2026-02-10', now), false);
   assert.eq(H.summaryFresh(null, '2026-02-10', now), false);
 });
+
+// ---- Distancia del día (Google la devuelve en milímetros, metros o kilómetros según el tipo de dato)
+test('distanceKm convierte milímetros, metros y kilómetros a km', () => {
+  assert.eq(H.distanceKm({ rollupDataPoints: [{ distance: { millimetersSum: '4800000' } }] }), 4.8);
+  assert.eq(H.distanceKm({ rollupDataPoints: [{ distance: { metersSum: 4800 } }] }), 4.8);
+  assert.eq(H.distanceKm({ rollupDataPoints: [{ distance: { kilometersSum: 4.8 } }] }), 4.8);
+});
+
+test('distanceKm suma varios puntos y redondea a una décima', () => {
+  assert.eq(H.distanceKm({ rollupDataPoints: [{ distance: { metersSum: 1234 } }, { distance: { metersSum: 3000 } }] }), 4.2);
+});
+
+test('distanceKm con una unidad desconocida se interpreta como metros', () => {
+  assert.eq(H.distanceKm({ rollupDataPoints: [{ distance: { valueSum: 2500 } }] }), 2.5);
+});
+
+test('distanceKm sin datos devuelve null', () => {
+  assert.eq(H.distanceKm({}), null);
+  assert.eq(H.distanceKm({ rollupDataPoints: [] }), null);
+  assert.eq(H.distanceKm(null), null);
+});

@@ -61,6 +61,7 @@
       "apps/gastos/main.js",
       "apps/gastos/screens/resumen.js",
       "apps/gastos/screens/subs.js",
+      "apps/gastos/screens/auto.js",
       "apps/gastos/screens/ajustes.js"
     ]
   },

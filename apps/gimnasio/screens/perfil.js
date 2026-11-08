@@ -31,11 +31,11 @@
 
   function removeSession(s) {
     const name = s.routineName || 'Entreno';
-    if (!confirm(`¿Borrar el entreno "${name}" del ${shortDay(G.dayOf(s.startedAt))}? Se quitará también de tus estadísticas.`)) return;
-    A.deleteSession(s.id);
-    A.closeSheet();
-    A.toast('Entreno borrado');
-    A.render();
+    A.confirmSheet({
+      title: `¿Borrar el entreno «${name}» del ${shortDay(G.dayOf(s.startedAt))}?`, text: 'Se quitará también de tus estadísticas.',
+      okLabel: 'Borrar entreno', act: 'delete-ok', danger: true,
+      onOk: () => { A.deleteSession(s.id); A.toast('Entreno borrado'); A.render(); }
+    });
   }
 
   function sessionCard(s) {

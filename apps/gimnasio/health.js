@@ -97,7 +97,10 @@
     let active = null;
     try { active = H.sumRollup(await post('active-energy-burned', accessToken, body)); }
     catch (e) { if (e.status === 401) throw e; } // las calorías activas son opcionales
-    return { steps: H.sumRollup(steps), total: H.sumRollup(total), active };
+    let distance = null;
+    try { distance = H.distanceKm(await post('distance', accessToken, body)); }
+    catch (e) { if (e.status === 401) throw e; } // la distancia también es opcional
+    return { steps: H.sumRollup(steps), total: H.sumRollup(total), active, distance };
   }
 
   // Sueño, pulso en reposo, VFC y pasos de los últimos días. Cada tipo falla por separado:

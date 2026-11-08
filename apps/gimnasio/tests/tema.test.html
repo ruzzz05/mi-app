@@ -1,59 +1,32 @@
 <!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><title>Tests tema gimnasio</title>
+<head><meta charset="UTF-8"><title>Tests colores por defecto del gimnasio</title>
 <link rel="stylesheet" href="../gym.css"></head>
 <body>
 <script src="../../../tests/harness.js"></script>
 <script>
-const v = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim().toUpperCase();
-const withTheme = (t, fn) => { document.documentElement.setAttribute('data-theme', t); try { fn(); } finally { document.documentElement.removeAttribute('data-theme'); } };
+// Los temas de color los pone shared/palette.js al cargar la página (se prueba en shared/tests).
+// Aquí se comprueba solo que, sin tema elegido, gym.css define todos los colores que usa.
+const v = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const VARS = ['--bg', '--surface', '--surface-2', '--ink', '--ink-2', '--ink-3', '--line', '--btn-bg', '--btn-ink',
-  '--accent', '--accent-soft', '--tab-bg', '--tab-ink', '--ok', '--on-ok', '--lv0', '--lv1', '--lv2', '--lv3', '--lv4', '--shadow'];
+  '--accent', '--accent-soft', '--tab-bg', '--tab-ink', '--tabbg', '--tabink', '--tabonbg', '--tabonink',
+  '--ok', '--on-ok', '--lv0', '--lv1', '--lv2', '--lv3', '--lv4', '--shadow'];
 
-test('tema aqua: fondo gris aqua, botón y barra en pizarra, acento azul claro', () => {
-  withTheme('aqua', () => {
-    assert.eq(v('--bg'), '#E9F0F2');
-    assert.eq(v('--surface'), '#FFFFFF');
-    assert.eq(v('--btn-bg'), '#22323A');
-    assert.eq(v('--tab-bg'), '#22323A');
-    assert.eq(v('--tab-ink'), '#7EC3E6');
-    assert.eq(v('--btn-ink'), '#7EC3E6');
+test('sin tema elegido, gym.css define todas las variables de color', () => {
+  VARS.forEach(n => assert.ok(v(n) !== '', 'falta ' + n));
+});
+
+test('el color por defecto es el del primer tema (negro y turquesa)', () => {
+  assert.eq(v('--bg').toUpperCase(), '#0A0A0A');
+  assert.eq(v('--accent').toUpperCase(), '#14E0D0');
+});
+
+test('los antiguos modos de color ya no cambian nada', () => {
+  ['aqua', 'niebla', 'light', 'dark'].forEach(t => {
+    document.documentElement.setAttribute('data-theme', t);
+    assert.eq(v('--bg').toUpperCase(), '#0A0A0A');
   });
-});
-
-test('tema aqua define todas las variables que usan los otros temas', () => {
-  withTheme('aqua', () => VARS.forEach(n => assert.ok(v(n) !== '', 'falta ' + n)));
-});
-
-test('tema aqua no hereda el verde lima del claro', () => {
-  const lime = ['#C6F432', '#3F5A00', '#E3F2B0', '#4F7A00', '#E1F0A8', '#D2EC6C', '#7FA300'];
-  withTheme('aqua', () => VARS.forEach(n => assert.ok(!lime.includes(v(n)), n + ' sigue en lima')));
-});
-
-test('tema niebla: gris azulado medio, tarjetas más claras, acento azul claro', () => {
-  withTheme('niebla', () => {
-    assert.eq(v('--bg'), '#50585F');
-    assert.eq(v('--surface'), '#5C656C');
-    assert.eq(v('--ink'), '#F2F7FA');
-    assert.eq(v('--btn-bg'), '#A5D6EE');
-    assert.eq(v('--btn-ink'), '#2A3238');
-    assert.eq(v('--accent'), '#A5D6EE');
-    assert.eq(v('--tab-ink'), '#A5D6EE');
-  });
-});
-
-test('tema niebla define todas las variables y no hereda el verde lima', () => {
-  const lime = ['#C6F432', '#3F5A00', '#E3F2B0', '#4F7A00', '#E1F0A8', '#D2EC6C', '#7FA300', '#2A3310', '#3B4A12', '#62801A', '#96BF26'];
-  withTheme('niebla', () => VARS.forEach(n => {
-    assert.ok(v(n) !== '', 'falta ' + n);
-    assert.ok(!lime.includes(v(n)), n + ' sigue en lima');
-  }));
-});
-
-test('los temas claro y oscuro siguen igual', () => {
-  withTheme('light', () => assert.eq(v('--bg'), '#ECEDEE'));
-  withTheme('dark', () => assert.eq(v('--bg'), '#0F0F10'));
-  withTheme('aqua', () => assert.eq(v('--bg'), '#E9F0F2'));
+  document.documentElement.removeAttribute('data-theme');
 });
 finish();
 </script>

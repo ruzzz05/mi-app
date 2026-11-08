@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Tests palette.js</title></head>
+<body>
+<header class="topbar"><span class="spacer"></span></header>
+<script>try { localStorage.setItem('palette', 'rosa-pastel'); } catch (e) {}</script>
+<script src="../../tests/harness.js"></script>
+<script src="../palettecore.js"></script>
+<script src="../palette.js"></script>
+<script>
+// palette.js monta el botón al terminar de cargar: las comprobaciones van después.
+document.addEventListener('DOMContentLoaded', () => {
+  const root = document.documentElement;
+  const btn = () => document.querySelector('#palette-btn');
+  const picker = () => document.querySelector('#palette-picker');
+  const opts = () => [...document.querySelectorAll('#palette-picker [data-palette-id]')];
+
+  test('al cargar aplica el tema guardado en las variables y en el atributo', () => {
+    assert.eq(root.getAttribute('data-palette'), 'rosa-pastel');
+    assert.eq(root.style.getPropertyValue('--accent'), '#F4A3C0');
+    assert.eq(root.style.getPropertyValue('--bg'), '#FCEBF1');
+  });
+
+  test('el botón sustituye al hueco de la cabecera y tiene nombre accesible', () => {
+    assert.ok(btn());
+    assert.eq(document.querySelector('.topbar .spacer'), null);
+    assert.eq(btn().getAttribute('aria-label'), 'Elegir tema de color');
+    assert.ok(btn().innerHTML.includes('<svg'));
+  });
+
+  test('el color de la barra del navegador sigue al fondo del tema', () => {
+    assert.eq(document.querySelector('meta[name="theme-color"]').content, '#FCEBF1');
+  });
+
+  test('pulsar el botón abre el selector con los 9 temas y marca el actual', () => {
+    btn().click();
+    assert.ok(picker() && !picker().hidden);
+    assert.eq(opts().length, 9);
+    assert.eq(opts().filter(o => o.getAttribute('aria-pressed') === 'true').map(o => o.dataset.paletteId), ['rosa-pastel']);
+  });
+
+  test('elegir un tema lo aplica, lo guarda y cierra el selector', () => {
+    opts().find(o => o.dataset.paletteId === 'turquesa').click();
+    assert.eq(root.getAttribute('data-palette'), 'turquesa');
+    assert.eq(root.style.getPropertyValue('--accent'), '#14E0D0');
+    assert.eq(localStorage.getItem('palette'), 'turquesa');
+    assert.eq(document.querySelector('meta[name="theme-color"]').content, '#0A0A0A');
+    assert.ok(picker().hidden);
+  });
+
+  test('Escape cierra el selector sin cambiar de tema', () => {
+    btn().click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    assert.ok(picker().hidden);
+    assert.eq(root.getAttribute('data-palette'), 'turquesa');
+  });
+
+  test('pulsar fuera del selector (el fondo oscuro) lo cierra', () => {
+    btn().click();
+    picker().click();
+    assert.ok(picker().hidden);
+  });
+
+  test('un tema guardado que ya no existe cae en el de por defecto', () => {
+    window.MiPalette.set('no-existe');
+    assert.eq(root.getAttribute('data-palette'), window.PaletteCore.DEFAULT_ID);
+  });
+
+  finish();
+});
+</script>
+</body>
+</html>

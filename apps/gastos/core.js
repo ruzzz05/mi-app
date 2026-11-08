@@ -1,33 +1,57 @@
-// Núcleo de la interfaz de Gastos: datos guardados en el móvil, navegación, hoja inferior y avisos.
-// Cada pantalla se registra con Gastos.register(nombre, { render }).
+// Núcleo de la interfaz de Gastos: datos guardados en el móvil, navegación, mes que se está viendo,
+// hoja inferior y avisos. Cada pantalla se registra con Gastos.register(nombre, { render }).
 (() => {
   const P = window.Planner;
   const KEY = 'gastos.v1';
-  const NAMES = ['resumen', 'subs', 'ajustes'];
+  const NAMES = ['resumen', 'subs', 'auto', 'ajustes'];
   const CATEGORIES = ['Supermercado', 'Restaurantes', 'Transporte', 'Suscripciones', 'Ocio', 'Salud', 'Hogar', 'Otros'];
+  const CAT_COLORS = { Supermercado: '#2FD08A', Restaurantes: '#FF8A5B', Transporte: '#5B9BFF', Suscripciones: '#B58CFF', Ocio: '#FFB547', Salud: '#5BD1E8', Hogar: '#F2C94C', Otros: '#7C8B99' };
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const eur = n => n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
-  const todayISO = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const eur = n => P.euros(n, 2);
+  const eur0 = n => P.euros(n, 0);
+  const isoOf = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const todayISO = () => isoOf(new Date());
 
   function load() {
-    try {
-      const s = JSON.parse(localStorage.getItem(KEY));
-      return { expenses: Array.isArray(s && s.expenses) ? s.expenses : [], subs: Array.isArray(s && s.subs) ? s.subs : [], updatedAt: (s && s.updatedAt) || 0 };
-    } catch (e) { return { expenses: [], subs: [], updatedAt: 0 }; }
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { /* datos rotos: se empieza de cero */ }
+    s = s || {};
+    return {
+      expenses: Array.isArray(s.expenses) ? s.expenses : [],
+      subs: Array.isArray(s.subs) ? s.subs : [],
+      budget: s.budget > 0 ? s.budget : P.DEFAULT_MONTH_BUDGET,
+      budgets: { ...P.DEFAULT_BUDGETS, ...(s.budgets || {}) },
+      updatedAt: s.updatedAt || 0
+    };
   }
 
   const screens = {};
   let current = null;
   let toastTimer;
+  const now = new Date();
+  const view = { y: now.getFullYear(), m: now.getMonth(), tab: 0 };   // mes que se enseña y pestaña del resumen
 
   const G = window.Gastos = {
-    state: load(), $, esc, eur, todayISO, CATEGORIES,
+    state: load(), $, esc, eur, eur0, todayISO, isoOf, CATEGORIES, CAT_COLORS, view,
+    colorOf: c => CAT_COLORS[c] || CAT_COLORS.Otros,
+    viewMonth: () => `${view.y}-${String(view.m + 1).padStart(2, '0')}`,
+    isCurrentMonth: () => G.viewMonth() === todayISO().slice(0, 7),
 
     save() {
       G.state.updatedAt = Date.now();
       try { localStorage.setItem(KEY, JSON.stringify(G.state)); } catch (e) { G.toast('No se pudo guardar en el móvil'); }
+      G.updateBadge();
+    },
+
+    // Puntito del rayo con los pagos que esperan a que los revises
+    updateBadge() {
+      const b = document.querySelector('#dock [data-screen="auto"] .badge');
+      if (!b) return;
+      const n = P.pendingList(G.state.expenses).length;
+      b.textContent = String(n);
+      b.hidden = n === 0;
     },
 
     toast(msg, ms) {
@@ -51,14 +75,13 @@
     go(name) {
       current = name;
       NAMES.forEach(n => $('screen-' + n).classList.toggle('hidden', n !== name));
-      document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.screen === name));
-      $('fab').classList.toggle('hidden', name === 'ajustes');
+      document.querySelectorAll('#dock [data-screen]').forEach(b => b.classList.toggle('active', b.dataset.screen === name));
       G.render();
       const sc = document.querySelector('.scroller');
       if (sc) sc.scrollTop = 0;
     },
 
-    render() { if (current && screens[current]) screens[current].render($('screen-' + current)); },
+    render() { if (current && screens[current]) screens[current].render($('screen-' + current)); G.updateBadge(); },
 
     addExpense(e) {
       G.state.expenses = [e, ...G.state.expenses];
@@ -69,12 +92,12 @@
     openExpenseSheet() {
       const subs = G.state.subs;
       G.openSheet('Nuevo gasto', `
-        <input id="ex-amount" class="field amount-in" type="text" inputmode="decimal" placeholder="0,00 €" autocomplete="off">
-        <input id="ex-merchant" class="field" type="text" placeholder="¿Dónde? (Mercadona, Netflix…)" autocomplete="off">
-        <div class="chips" id="ex-cats">${CATEGORIES.map(c => `<button type="button" class="chip-btn" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div>
-        <div class="sheet-actions"><button id="ex-save" class="btn" type="button">Guardar</button></div>`);
+        <input id="ex-amount" class="field amount-in" type="text" inputmode="decimal" placeholder="0,00 €" autocomplete="off" aria-label="Importe">
+        <input id="ex-merchant" class="field" type="text" placeholder="¿Dónde? (Mercadona, Cine…)" autocomplete="off" aria-label="Dónde">
+        <div class="cats" id="ex-cats">${CATEGORIES.map(c => `<button type="button" data-cat="${esc(c)}"><i style="background:${G.colorOf(c)}"></i>${esc(c)}</button>`).join('')}</div>
+        <div class="sheet-actions"><button id="ex-save" class="btn big" type="button">Guardar gasto</button></div>`);
       let cat = null;
-      const mark = () => document.querySelectorAll('#ex-cats .chip-btn').forEach(b => b.classList.toggle('on', b.dataset.cat === cat));
+      const mark = () => document.querySelectorAll('#ex-cats [data-cat]').forEach(b => b.classList.toggle('on', b.dataset.cat === cat));
       $('ex-cats').onclick = e => { const b = e.target.closest('[data-cat]'); if (b) { cat = b.dataset.cat; mark(); } };
       $('ex-merchant').oninput = () => { if (!cat) { const g = P.guessCategory($('ex-merchant').value); if (g !== 'Otros') { cat = g; mark(); } } };
       $('ex-save').onclick = () => {
@@ -83,17 +106,30 @@
         const merchant = $('ex-merchant').value.trim() || 'Gasto';
         const match = P.matchSubscription({ merchant }, subs);
         G.addExpense({ id: P.newId(), amount, merchant, date: todayISO(), category: cat || (match ? 'Suscripciones' : P.guessCategory(merchant)), source: 'manual' });
-        G.closeSheet(); G.render(); G.toast('Gasto guardado');
+        // El gasto es de hoy: se vuelve al mes actual para verlo
+        const t = new Date(); view.y = t.getFullYear(); view.m = t.getMonth(); view.tab = 0;
+        G.closeSheet(); G.go('resumen'); G.toast('Gasto guardado');
       };
       setTimeout(() => $('ex-amount').focus(), 50);
+    },
+
+    // Un pago que llega con la dirección del Atajo (?pago=12,50&comercio=Mercadona) queda por revisar
+    takePaymentFromUrl() {
+      const e = P.fromQuery(location.search, Date.now());
+      if (!e) return;
+      G.state.expenses = [e, ...G.state.expenses];
+      G.save();
+      try { history.replaceState(null, '', location.pathname); } catch (err) { /* sin historial */ }
+      G.toast('Pago por revisar: ' + e.merchant);
     },
 
     start() {
       $('sheet-close').onclick = G.closeSheet;
       $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) G.closeSheet(); });
-      document.querySelectorAll('.tabbar button').forEach(b => { b.onclick = () => G.go(b.dataset.screen); });
+      document.querySelectorAll('#dock [data-screen]').forEach(b => { b.onclick = () => G.go(b.dataset.screen); });
       document.addEventListener('keydown', e => { if (e.key === 'Escape') G.closeSheet(); });
-      $('fab').onclick = G.openExpenseSheet;
+      $('dock-add').onclick = G.openExpenseSheet;
+      G.takePaymentFromUrl();
       G.go('resumen');
     }
   };

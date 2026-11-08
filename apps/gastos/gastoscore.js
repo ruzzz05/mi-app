@@ -198,7 +198,81 @@
     };
   }
 
+
+  // ---------- Presupuesto, meses, categorías y exportar ----------
+  const DEFAULT_MONTH_BUDGET = 1000;
+  const DEFAULT_BUDGETS = { Supermercado: 350, Restaurantes: 120, Transporte: 100, Suscripciones: 80, Ocio: 120, Salud: 60, Hogar: 100, Otros: 70 };
+
+  // Los pagos que llegan solos (Apple Pay) esperan a que los revises: no cuentan hasta confirmarlos.
+  const confirmed = list => list.filter(e => !e.pending);
+  const pendingList = list => list.filter(e => e.pending);
+  function confirmPending(list, id, category) {
+    if (!list.some(e => e.id === id)) return list;
+    return list.map(e => { if (e.id !== id) return e; const { pending, ...rest } = e; return { ...rest, category: category || e.category }; });
+  }
+
+  // Cifras de un mes ('AAAA-MM') frente a un presupuesto. today = 'AAAA-MM-DD'.
+  function monthStats(expenses, month, budget, today) {
+    const spent = round2(sumOf(confirmed(expenses).filter(e => e.date.startsWith(month))));
+    const total = daysInMonth(month), current = today.startsWith(month);
+    const days = current ? Number(today.slice(8, 10)) : total;
+    return {
+      spent, left: round2(budget - spent), pct: budget > 0 ? Math.min(100, round2(spent / budget * 100)) : 0, over: spent > budget,
+      days, perDay: round2(spent / days), forecast: current ? round2(spent / days * total) : null,
+      closed: !current, restDays: current ? total - days : 0
+    };
+  }
+  const sumOf = list => list.reduce((t, e) => t + e.amount, 0);
+
+  const SHORT_MONTH = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  // Gastos agrupados por día, del más reciente al más antiguo: Hoy, Ayer o "12 nov".
+  function groupByDay(expenses, today) {
+    const by = new Map();
+    confirmed(expenses).forEach(e => { if (!by.has(e.date)) by.set(e.date, []); by.get(e.date).push(e); });
+    return [...by.keys()].sort().reverse().map(date => ({
+      date, items: by.get(date), total: round2(sumOf(by.get(date))),
+      label: date === today ? 'Hoy' : date === addDays(today, -1) ? 'Ayer' : `${Number(date.slice(8, 10))} ${SHORT_MONTH[Number(date.slice(5, 7)) - 1]}`
+    }));
+  }
+
+  // Gasto de un mes por categoría frente al presupuesto de cada una, del que más gasta al que menos.
+  function categoryRows(expenses, month, budgets) {
+    const spent = {};
+    confirmed(expenses).filter(e => e.date.startsWith(month)).forEach(e => { spent[e.category] = (spent[e.category] || 0) + e.amount; });
+    const names = [...new Set([...Object.keys(budgets), ...Object.keys(spent)])];
+    return names.map(category => {
+      const s = round2(spent[category] || 0), budget = budgets[category] || 0;
+      return { category, spent: s, budget, pct: budget > 0 ? Math.min(100, Math.round(s / budget * 100)) : 0, over: budget > 0 && s > budget };
+    }).sort((a, b) => b.spent - a.spent || a.category.localeCompare(b.category, 'es'));
+  }
+
+  // Texto CSV (separado por ;, con coma decimal) para abrirlo en una hoja de cálculo en español.
+  const csvField = v => (/[";\n]/.test(v) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v));
+  function toCSV(expenses) {
+    const rows = confirmed(expenses).map(e => [e.date, csvField(e.merchant), csvField(e.category), e.amount.toFixed(2).replace('.', ',')].join(';'));
+    return ['fecha;comercio;categoria;importe', ...rows].join('\n');
+  }
+
+
+  // La dirección con la que el Atajo de iOS abre la app: ?pago=12,50&comercio=Mercadona.
+  // Devuelve un gasto por revisar (pending) o null si no trae un pago válido.
+  function fromQuery(search, now) {
+    let q; try { q = new URLSearchParams(search); } catch (e) { return null; }
+    if (!q.has('pago')) return null;
+    const e = parseInbox({ amount: q.get('pago'), merchant: q.get('comercio') || '', ts: now });
+    return e ? { ...e, pending: true } : null;
+  }
+
+
+  // 1234.5 -> "1.234,50 €" (con punto de miles también desde 4 cifras)
+  function euros(n, decimals) {
+    const neg = n < 0, fixed = Math.abs(n).toFixed(decimals), [int, dec] = fixed.split('.');
+    const out = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (dec ? ',' + dec : '');
+    return (neg && Number(fixed) !== 0 ? '-' : '') + out + ' €';
+  }
+
   const api = {
+    DEFAULT_MONTH_BUDGET, DEFAULT_BUDGETS, euros, fromQuery, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryRows, toCSV,
     isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, projectMonth,
     addDays, addMonths, daysBetween, yearlyCost, monthlyCost, subscriptionTotals, nextCharge, upcomingCharges,
     merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId

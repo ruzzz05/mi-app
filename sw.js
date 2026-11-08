@@ -1,5 +1,5 @@
 // Cambia VERSION cuando modifiques archivos de la app para forzar la actualización.
-const VERSION = 'v65';
+const VERSION = 'v66';
 const CACHE = `mi-app-${VERSION}`;
 
 // Imágenes de ejercicios (Gimnasio): caché aparte que NO se borra al actualizar la app (la versión de
@@ -14,6 +14,8 @@ const SHELL = [
   'shared/styles.css',
   'shared/pwa.js',
   'shared/theme.js',
+  'shared/palettecore.js',
+  'shared/palette.js',
   'shared/auth.js',
   'shared/authcore.js',
   'shared/synccore.js',
