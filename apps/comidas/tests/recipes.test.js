@@ -172,3 +172,55 @@ test('buildIngredients conserva la cantidad que ya tenia la receta (sin distingu
   assert.eq(Planner.buildIngredients(['Pollo', 'arroz', 'sal'], prev),
     [{ name: 'Pollo', qty: 2.5 }, { name: 'arroz', qty: 1 }, { name: 'sal', qty: 1 }]);
 });
+
+// =========================================================
+// Buscador de recetas: por nombre y por ingredientes
+// =========================================================
+const busSopa = { id: 's', name: 'Sopa de pollo', ingredients: [{ name: 'Pollo', qty: 1 }, { name: 'Fideos', qty: 1 }] };
+const busEnsalada = { id: 'e', name: 'Ensalada', ingredients: [{ name: 'Lechuga', qty: 1 }, { name: 'Limón', qty: 1 }, { name: 'Atún', qty: 1 }] };
+const busArroz = { id: 'a', name: 'Arroz con pollo', ingredients: ['Arroz', 'Pollo', 'Pimiento'] };
+const busTodas = [busSopa, busEnsalada, busArroz];
+const busIds = list => list.map(d => d.id);
+
+test('filterDishes sin texto (o solo espacios) devuelve todas las recetas en su orden', () => {
+  assert.eq(busIds(Planner.filterDishes(busTodas, '')), ['s', 'e', 'a']);
+  assert.eq(busIds(Planner.filterDishes(busTodas, '   ')), ['s', 'e', 'a']);
+  assert.eq(busIds(Planner.filterDishes(busTodas, undefined)), ['s', 'e', 'a']);
+});
+
+test('filterDishes busca por el nombre de la receta', () => {
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'sopa')), ['s']);
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'ensal')), ['e']);   // basta una parte del nombre
+});
+
+test('filterDishes busca por el nombre de un ingrediente', () => {
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'lechuga')), ['e']);
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'pimiento')), ['a']);   // ingrediente escrito como texto
+});
+
+test('filterDishes junta las que coinciden por nombre o por ingrediente', () => {
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'pollo')), ['s', 'a']);   // nombre en una, ingrediente en ambas
+});
+
+test('filterDishes no distingue mayúsculas ni tildes', () => {
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'LIMON')), ['e']);
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'atun')), ['e']);
+  assert.eq(busIds(Planner.filterDishes([{ id: 'x', name: 'Canelones', ingredients: [] }], 'cánelones')), ['x']);
+});
+
+test('filterDishes con varias palabras exige todas, cada una en el nombre o en algún ingrediente', () => {
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'pollo arroz')), ['a']);
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'sopa fideos')), ['s']);       // una en el nombre y otra en un ingrediente
+  assert.eq(busIds(Planner.filterDishes(busTodas, 'pollo lechuga')), []);        // ninguna receta tiene las dos
+});
+
+test('filterDishes sin coincidencias devuelve lista vacía y no toca la lista original', () => {
+  const busCopia = JSON.stringify(busTodas);
+  assert.eq(Planner.filterDishes(busTodas, 'chocolate'), []);
+  assert.eq(JSON.stringify(busTodas), busCopia);
+});
+
+test('filterDishes tolera recetas sin ingredientes y listas vacías', () => {
+  assert.eq(busIds(Planner.filterDishes([{ id: 'v', name: 'Vacía' }], 'vac')), ['v']);
+  assert.eq(Planner.filterDishes([], 'algo'), []);
+});

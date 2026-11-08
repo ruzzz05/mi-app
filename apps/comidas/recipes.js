@@ -52,6 +52,20 @@
     });
   }
 
+  // Texto sin mayúsculas ni tildes, para comparar al buscar ("Limón" == "limon").
+  const fold = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  // Buscador de recetas: cada palabra escrita tiene que aparecer en el nombre de la receta o en alguno
+  // de sus ingredientes (no importan mayúsculas ni tildes). Sin texto devuelve todas, en su orden.
+  function filterDishes(dishes, query) {
+    const terms = fold(query || '').split(/\s+/).filter(Boolean);
+    if (!terms.length) return [...dishes];
+    return dishes.filter(d => {
+      const haystack = [d.name, ...ingredientsOf(d).map(i => i.name)].map(fold);
+      return terms.every(t => haystack.some(h => h.includes(t)));
+    });
+  }
+
   // Ingrediente de mayor cantidad. Si varios empatan no hay uno principal (null):
   // elegir el primero sería arbitrario.
   function mainIngredient(dish) {
@@ -118,7 +132,7 @@
     };
   }
 
-  const api = { norm, newId, emptyList, parseQty, formatQty, ingredientsOf, normalizeDish, knownIngredients, buildIngredients, mainIngredient, migrateState };
+  const api = { norm, newId, emptyList, parseQty, formatQty, ingredientsOf, normalizeDish, knownIngredients, buildIngredients, filterDishes, mainIngredient, migrateState };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Planner = Object.assign(root.Planner || {}, api);
 })(typeof window !== 'undefined' ? window : globalThis);

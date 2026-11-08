@@ -11,7 +11,24 @@
       : 'Sin ingredientes';
   };
 
+  // Texto del buscador. Se borra al entrar en la pantalla o al crear una receta (para que se vea la nueva);
+  // solo se mantiene si se refresca la lista por guardar o borrar una receta que ya existía.
+  let query = '';
+  let keepQuery = false;
+
+  const cardHtml = d => `
+    <button class="card-row" type="button" data-act="edit" data-id="${d.id}">
+      ${d.photo ? `<img class="thumb" data-photo="${esc(d.photo)}" alt="">` : ''}
+      <span>${esc(d.name)}<small>${esc(summary(d))}</small></span>
+    </button>`;
+
+  const listHtml = found => (found.length
+    ? found.map(cardHtml).join('')
+    : `<p class="empty-msg">Ninguna receta coincide con «${esc(query.trim())}».</p>`);
+
   function render(el) {
+    if (!keepQuery) query = '';
+    keepQuery = false;
     const dishes = [...C.state.dishes].sort((a, b) => a.name.localeCompare(b.name, 'es'));
     el.innerHTML = `
       <div class="screen-head">
@@ -19,15 +36,21 @@
         <button class="btn" type="button" data-act="new">Nueva receta</button>
       </div>
       ${dishes.length
-        ? dishes.map(d => `
-            <button class="card-row" type="button" data-act="edit" data-id="${d.id}">
-              ${d.photo ? `<img class="thumb" data-photo="${esc(d.photo)}" alt="">` : ''}
-              <span>${esc(d.name)}<small>${esc(summary(d))}</small></span>
-            </button>`).join('')
+        ? `<input id="recipe-search" class="field search-field" type="search" placeholder="Buscar receta o ingrediente"
+             aria-label="Buscar receta o ingrediente" autocomplete="off" value="${esc(query)}">
+           <div id="recipe-list">${listHtml(P.filterDishes(dishes, query))}</div>`
         : `<div class="hero"><h2>Escribe tus recetas</h2>
             <p>Añade todas las que sepas, con sus ingredientes. Con ellas la app montará tu menú.</p>
             <button class="btn big" type="button" data-act="new">Añadir la primera</button></div>`}`;
 
+    const search = $('recipe-search');
+    if (search) {
+      search.oninput = () => {
+        query = search.value;
+        $('recipe-list').innerHTML = listHtml(P.filterDishes(dishes, query));   // solo la lista: el campo conserva el foco
+        C.hydratePhotos($('recipe-list'));
+      };
+    }
     C.hydratePhotos(el);
     el.onclick = e => {
       const b = e.target.closest('[data-act]');
@@ -152,6 +175,7 @@
       } else {
         C.state.dishes.push(P.withPhoto(P.normalizeDish({ name, ingredients }), photoId));
       }
+      keepQuery = !!dish;      // editar una receta: se mantiene el filtro; una nueva lo borra para que se vea
       C.save(); C.closeSheet(); C.render();
     };
 
@@ -159,6 +183,7 @@
       $('dish-delete').onclick = () => {
         if (!confirm(`¿Eliminar "${dish.name}"? Si está en el menú, se sustituirá por otra.`)) return;
         C.dropDish(dish.id);
+        keepQuery = true;
         C.save(); C.closeSheet(); C.render();
       };
     }
