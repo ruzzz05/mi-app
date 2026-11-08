@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-themes="light,dark,aqua">
+<html lang="es" data-themes="light,dark,aqua,niebla">
 <head><meta charset="UTF-8"><title>Tests theme.js</title></head>
 <body>
 <script>try { localStorage.setItem('theme', 'dark'); } catch (e) {}</script>
@@ -18,20 +18,25 @@ document.addEventListener('DOMContentLoaded', () => {
     assert.ok(btn().innerHTML.includes('<svg'), 'icono');
   });
 
-  test('pulsar cicla a aqua, luego a claro y luego a oscuro', () => {
-    click();
-    assert.eq(document.documentElement.getAttribute('data-theme'), 'aqua');
-    assert.eq(localStorage.getItem('theme'), 'aqua');
-    click();
-    assert.eq(document.documentElement.getAttribute('data-theme'), 'light');
-    click();
-    assert.eq(document.documentElement.getAttribute('data-theme'), 'dark');
+  test('pulsar cicla oscuro, aqua, niebla, claro y vuelve a oscuro', () => {
+    ['aqua', 'niebla', 'light', 'dark'].forEach(m => {
+      click();
+      assert.eq(document.documentElement.getAttribute('data-theme'), m);
+      assert.eq(localStorage.getItem('theme'), m);
+    });
   });
 
-  test('el icono de aqua es distinto al de claro y oscuro', () => {
+  test('desde aqua, el siguiente modo es niebla con nombre propio', () => {
+    click(); // aqua
+    assert.eq(btn().getAttribute('aria-label'), 'Cambiar a modo niebla');
+    click(); click(); click(); // niebla, claro, oscuro
+  });
+
+  test('cada modo tiene un icono distinto', () => {
     const icons = {};
-    ['dark', 'aqua', 'light'].forEach(() => { icons[btn().getAttribute('aria-label')] = btn().innerHTML; click(); });
-    assert.eq(new Set(Object.values(icons)).size, 3);
+    for (let i = 0; i < 4; i++) { icons[btn().getAttribute('aria-label')] = btn().innerHTML; click(); }
+    assert.eq(Object.keys(icons).length, 4);
+    assert.eq(new Set(Object.values(icons)).size, 4);
   });
 
   try { localStorage.removeItem('theme'); } catch (e) {}

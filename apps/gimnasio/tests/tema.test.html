@@ -30,9 +30,34 @@ test('tema aqua no hereda el verde lima del claro', () => {
   withTheme('aqua', () => VARS.forEach(n => assert.ok(!lime.includes(v(n)), n + ' sigue en lima')));
 });
 
+test('tema niebla: gris azulado medio, tarjetas más claras, acento azul claro', () => {
+  withTheme('niebla', () => {
+    assert.eq(v('--bg'), '#50585F');
+    assert.eq(v('--surface'), '#5C656C');
+    assert.eq(v('--ink'), '#F2F7FA');
+    assert.eq(v('--btn-bg'), '#A5D6EE');
+    assert.eq(v('--btn-ink'), '#2A3238');
+    assert.eq(v('--accent'), '#A5D6EE');
+    assert.eq(v('--tab-ink'), '#A5D6EE');
+  });
+});
+
+test('tema niebla define todas las variables y no hereda el verde lima', () => {
+  const lime = ['#C6F432', '#3F5A00', '#E3F2B0', '#4F7A00', '#E1F0A8', '#D2EC6C', '#7FA300', '#2A3310', '#3B4A12', '#62801A', '#96BF26'];
+  withTheme('niebla', () => VARS.forEach(n => {
+    assert.ok(v(n) !== '', 'falta ' + n);
+    assert.ok(!lime.includes(v(n)), n + ' sigue en lima');
+  }));
+});
+
+test('tema niebla es oscuro: texto claro sobre fondo medio', () => {
+  withTheme('niebla', () => assert.eq(getComputedStyle(document.documentElement).colorScheme, 'dark'));
+});
+
 test('los temas claro y oscuro siguen igual', () => {
   withTheme('light', () => assert.eq(v('--bg'), '#ECEDEE'));
   withTheme('dark', () => assert.eq(v('--bg'), '#0F0F10'));
+  withTheme('aqua', () => assert.eq(v('--bg'), '#E9F0F2'));
 });
 finish();
 </script>
