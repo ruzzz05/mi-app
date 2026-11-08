@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Tests tema gimnasio</title>
+<link rel="stylesheet" href="../gym.css"></head>
+<body>
+<script src="../../../tests/harness.js"></script>
+<script>
+const v = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim().toUpperCase();
+const withTheme = (t, fn) => { document.documentElement.setAttribute('data-theme', t); try { fn(); } finally { document.documentElement.removeAttribute('data-theme'); } };
+const VARS = ['--bg', '--surface', '--surface-2', '--ink', '--ink-2', '--ink-3', '--line', '--btn-bg', '--btn-ink',
+  '--accent', '--accent-soft', '--tab-bg', '--tab-ink', '--ok', '--on-ok', '--lv0', '--lv1', '--lv2', '--lv3', '--lv4', '--shadow'];
+
+test('tema aqua: fondo gris aqua, botón y barra en pizarra, acento azul claro', () => {
+  withTheme('aqua', () => {
+    assert.eq(v('--bg'), '#E9F0F2');
+    assert.eq(v('--surface'), '#FFFFFF');
+    assert.eq(v('--btn-bg'), '#22323A');
+    assert.eq(v('--tab-bg'), '#22323A');
+    assert.eq(v('--tab-ink'), '#7EC3E6');
+    assert.eq(v('--btn-ink'), '#7EC3E6');
+  });
+});
+
+test('tema aqua define todas las variables que usan los otros temas', () => {
+  withTheme('aqua', () => VARS.forEach(n => assert.ok(v(n) !== '', 'falta ' + n)));
+});
+
+test('tema aqua no hereda el verde lima del claro', () => {
+  const lime = ['#C6F432', '#3F5A00', '#E3F2B0', '#4F7A00', '#E1F0A8', '#D2EC6C', '#7FA300'];
+  withTheme('aqua', () => VARS.forEach(n => assert.ok(!lime.includes(v(n)), n + ' sigue en lima')));
+});
+
+test('los temas claro y oscuro siguen igual', () => {
+  withTheme('light', () => assert.eq(v('--bg'), '#ECEDEE'));
+  withTheme('dark', () => assert.eq(v('--bg'), '#0F0F10'));
+});
+finish();
+</script>
+</body>
+</html>

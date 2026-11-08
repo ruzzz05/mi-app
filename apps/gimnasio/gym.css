@@ -60,6 +60,28 @@
   color-scheme: dark;
 }
 
+/* Tercer modo, aqua: gris azulado claro con pizarra y acento azul claro ("Aqua gris"). */
+:root[data-theme="aqua"] {
+  --bg: #E9F0F2;
+  --surface: #FFFFFF;
+  --surface-2: #DCE6EA;
+  --ink: #14222A;
+  --ink-2: #4C5F69;
+  --ink-3: #6C7E88;
+  --line: #CBD8DE;
+  --btn-bg: #22323A;
+  --btn-ink: #7EC3E6;
+  --accent: #1F6F96;
+  --accent-soft: #CFE9F5;
+  --tab-bg: #22323A;
+  --tab-ink: #7EC3E6;
+  --ok: #1F7FA8;
+  --on-ok: #ffffff;
+  --lv0: #D5E0E5; --lv1: #CBE7F5; --lv2: #A5D5EE; --lv3: #7EC3E6; --lv4: #2F8DBA;
+  --shadow: 0 1px 2px rgba(20,50,70,.06), 0 8px 24px rgba(20,50,70,.10);
+  color-scheme: light;
+}
+
 /* La app ocupa exactamente la pantalla y solo se desplaza el contenido (igual que Mi-Menu). */
 html { height: 100%; overflow: hidden; background: var(--bg); }
 body {
