@@ -150,3 +150,14 @@ select.field { appearance: none; }
 
 button:focus-visible, a:focus-visible, .field:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Tipografía del diseño (variable, incluida en la app para que funcione sin conexión) */
+@font-face { font-family: "Manrope"; src: url("../../shared/fonts/manrope.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+body, button, input, select, textarea { font-family: var(--sans); }
+/* Escala del diseño: los prototipos se hicieron para una pantalla de 280 px de ancho; este factor da
+   en el móvil (390 px) las mismas proporciones de texto y de piezas. */
+html { zoom: 1.2; }
+/* Barra flotante pegada al borde de abajo (en iPhone ya queda un hueco por su cuenta) */
+.dock { bottom: 4px; }
+.dock-fade { height: 100px; }
+.toast { bottom: 96px; }
