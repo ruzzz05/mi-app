@@ -18,7 +18,19 @@
 <link rel="stylesheet" href="shared/styles.css">
 <script src="shared/auth.js"></script>
 <script src="shared/theme.js"></script>
+<script src="shared/version.js"></script>
 <style>
+  .app-version {
+    position: fixed;
+    right: 14px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: var(--ink-3);
+    opacity: .8;
+    pointer-events: none;
+    user-select: none;
+  }
   .home {
     min-height: 100vh;
     min-height: 100dvh;
@@ -152,6 +164,7 @@
       <button type="button" id="logout">Cerrar sesión</button>
     </div>
   </main>
+  <span id="app-version" class="app-version"></span>
 
 <script>
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -182,6 +195,7 @@ MiAuth.ready.then(() => {
 });
 document.getElementById('logout').addEventListener('click', () => MiAuth.signOut());
 </script>
+<script>document.getElementById('app-version').textContent = 'v' + window.APP_VERSION;</script>
 <script src="shared/pwa.js"></script>
 </body>
 </html>
