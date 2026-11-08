@@ -16,6 +16,7 @@ const PUSH_DELAY = 1500;
 const OWNER_KEY = 'gimnasio.owner';           // uid de la cuenta a la que pertenecen los datos del móvil
 const PENDING_KEY = 'pending-sync.gimnasio';  // lo que falta por subir (lo mira auth.js al cerrar sesión)
 const lastSyncKey = uid => 'gimnasio.lastSync.' + uid;
+const lastOkKey = uid => 'gimnasio.lastOk.' + uid;  // última vez que se leyó o se subió bien (lo enseña el punto de la cabecera)
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
 // localStorage puede no estar disponible (modo privado): entonces se actúa como "nunca sincronizado"
@@ -42,6 +43,13 @@ function savePending() {
 let ready = false;
 let timer = null;
 let lastError = ''; // último fallo con la nube, para decírtelo al pulsar "Sincronizar ahora"
+
+// Punto de sincronización de la cabecera (shared/syncbadge.js)
+const badge = s => { if (window.SyncBadge) window.SyncBadge.set(s); };
+const markOk = () => { store.set(lastOkKey(uid()), String(Date.now())); lastError = ''; badge({ dirty: hasPending(), error: '', syncing: false, lastSyncAt: Date.now() }); };
+const markError = err => { lastError = String(err && err.message || err); badge({ error: lastError, syncing: false }); };
+badge({ dirty: hasPending() });
+window.addEventListener('online', () => badge({ error: '' }));
 
 const uid = () => M.auth.currentUser.uid;
 const base = () =>
@@ -154,8 +162,8 @@ async function sync() {
   if (adopted) { A.render(); A.toast('Datos recuperados de la nube'); }
   store.set(lastSyncKey(uid()), String(Date.now())); // la lectura ya está hecha
   // Si la subida falla no se tira la conexión: queda pendiente y flush() lo dirá y lo reintentará
-  try { await pushPending(remoteMonths); }
-  catch (err) { lastError = String(err && err.message || err); console.warn('No se pudo subir:', err); }
+  try { await pushPending(remoteMonths); markOk(); }
+  catch (err) { markError(err); console.warn('No se pudo subir:', err); }
 }
 
 // Los datos del móvil pertenecen a una cuenta; si ahora entra otra, no se suben a la nueva.
@@ -187,9 +195,12 @@ async function doConnect(force) {
     const lastSyncAt = Number(store.get(lastSyncKey(uid())));
     if (S.shouldReadRemote({ isEmpty, lastSyncAt, now: Date.now(), force })) await sync();
     ready = true;
+    // Una lectura correcta también cuenta como sincronizada (aunque se haya hecho antes de abrir la app)
+    const lastOk = Number(store.get(lastOkKey(uid()))) || lastSyncAt || Number(store.get(lastSyncKey(uid()))) || 0;
+    badge({ dirty: hasPending(), lastSyncAt: lastOk, ...(hasPending() ? {} : { error: '' }) });
     return true;
   } catch (err) {
-    lastError = String(err && err.message || err);
+    markError(err);
     console.warn('Nube no disponible por ahora:', err);
     return false;
   }
@@ -199,24 +210,28 @@ async function doConnect(force) {
 async function flush() {
   if (!hasPending()) return true;
   if (!(await connect())) return false;
-  try { await pushPending(); return true; }
-  catch (err) { lastError = String(err && err.message || err); console.warn('No se pudo subir:', err); return false; }
+  badge({ syncing: true });
+  try { await pushPending(); markOk(); return true; }
+  catch (err) { markError(err); console.warn('No se pudo subir:', err); return false; }
 }
 
 A.onSave = changes => {
   if (changes.config) pending.config = true;
   changes.months.forEach(k => pending.months.add(k));
   savePending();
+  badge({ dirty: true });
   clearTimeout(timer);
   timer = setTimeout(flush, PUSH_DELAY);
 };
 
 A.syncNow = async () => {
   A.toast('Sincronizando…', 3000);
+  badge({ syncing: true });
   // Si la sesión no responde (p. ej. el móvil tarda en leerla), que se diga en vez de quedarse mudo
   const session = await Promise.race([M.ready.then(() => true), new Promise(r => setTimeout(() => r(false), 10000))]);
   if (!session) {
     A.toast('La sesión no responde (' + M.diag() + '). Cierra la app del todo y vuelve a abrirla.', 9000);
+    markError('La sesión no responde.');
     return;
   }
   const connected = await connect({ force: true });

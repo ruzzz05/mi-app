@@ -1,0 +1,5 @@
+node_modules/
+test-results/
+playwright-report/
+# Credenciales de la cuenta de pruebas: nunca al repositorio (la web es pública)
+tests/e2e/credenciales.local.json

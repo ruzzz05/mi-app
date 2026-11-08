@@ -17,6 +17,7 @@ const PUSH_DELAY = 1500; // espera a que dejes de tocar cosas antes de subir
 const OWNER_KEY = 'comidas.owner';           // uid de la cuenta a la que pertenecen los datos del móvil
 const PENDING_KEY = 'pending-sync.comidas';  // '1' mientras haya cambios sin subir (lo mira auth.js al cerrar sesión)
 const lastSyncKey = uid => 'comidas.lastSync.' + uid;
+const lastOkKey = uid => 'comidas.lastOk.' + uid;  // última vez que se leyó o se subió bien (lo enseña el punto de la cabecera)
 
 // localStorage puede no estar disponible (modo privado): entonces se actúa como "nunca sincronizado"
 const store = {
@@ -29,6 +30,13 @@ let ready = false;
 let dirty = store.get(PENDING_KEY) === '1';
 let timer = null;
 let lastError = ''; // último fallo con la nube, para decírtelo al pulsar "Sincronizar ahora"
+
+// Punto de sincronización de la cabecera (shared/syncbadge.js)
+const badge = s => { if (window.SyncBadge) window.SyncBadge.set(s); };
+const markOk = () => { store.set(lastOkKey(uid()), String(Date.now())); lastError = ''; badge({ error: '', syncing: false, lastSyncAt: Date.now() }); };
+const markError = err => { lastError = String(err && err.message || err); badge({ error: lastError, syncing: false }); };
+badge({ dirty });
+window.addEventListener('online', () => badge({ error: '' }));
 
 const uid = () => A.auth.currentUser.uid;
 
@@ -97,6 +105,7 @@ async function sync() {
     await push();
   }
   store.set(lastSyncKey(uid()), String(Date.now()));
+  if (!dirty) markOk();
 }
 
 // Una sola conexión a la vez. force:true obliga a leer la nube aunque no toque.
@@ -115,9 +124,12 @@ async function doConnect(force) {
     const lastSyncAt = Number(store.get(lastSyncKey(uid())));
     if (P.shouldReadRemote({ local: C.state, lastSyncAt, now: Date.now(), force })) await sync();
     ready = true;
+    // Una lectura correcta también cuenta como sincronizada (aunque se haya hecho antes de abrir la app)
+    const lastOk = Number(store.get(lastOkKey(uid()))) || lastSyncAt || Number(store.get(lastSyncKey(uid()))) || 0;
+    badge({ lastSyncAt: lastOk, ...(dirty ? {} : { error: '' }) });
     return true;
   } catch (err) {
-    lastError = String(err && err.message || err);
+    markError(err);
     console.warn('Nube no disponible por ahora:', err);
     return false;
   }
@@ -129,6 +141,8 @@ async function push() {
   await writeRemote(data);
   dirty = false;
   store.del(PENDING_KEY);
+  badge({ dirty: false });
+  markOk();
 }
 
 // Devuelve true si no queda nada pendiente (no había nada o se subió) y false si falló.
@@ -136,12 +150,14 @@ async function flush() {
   if (window.Photos) window.Photos.flushPending();   // fotos que quedaron sin subir (no espera ni condiciona la subida del estado)
   if (!dirty) return true;
   if (!(await connect())) return false;
+  badge({ syncing: true });
   try { await push(); return true; }
-  catch (err) { dirty = true; lastError = String(err && err.message || err); console.warn('No se pudo subir:', err); return false; }
+  catch (err) { dirty = true; markError(err); console.warn('No se pudo subir:', err); return false; }
 }
 
 C.onSave = () => {
   dirty = true;
+  badge({ dirty: true });
   store.set(PENDING_KEY, '1');
   clearTimeout(timer);
   timer = setTimeout(flush, PUSH_DELAY);
@@ -149,10 +165,12 @@ C.onSave = () => {
 
 C.syncNow = async () => {
   C.toast('Sincronizando…', 3000);
+  badge({ syncing: true });
   // Si la sesión no responde (p. ej. el móvil tarda en leerla), que se diga en vez de quedarse mudo
   const session = await Promise.race([A.ready.then(() => true), new Promise(r => setTimeout(() => r(false), 10000))]);
   if (!session) {
     C.toast('La sesión no responde (' + A.diag() + '). Cierra la app del todo y vuelve a abrirla.', 9000);
+    markError('La sesión no responde.');
     return;
   }
   const connected = await connect({ force: true });

@@ -43,7 +43,42 @@
     return { updatedAt, json: f.json.stringValue };
   }
 
-  const api = { SYNC_INTERVAL_MS, shouldReadRemote, ownerAction, decideDoc, toFirestoreFields, fromFirestoreDoc };
+  // "hace 5 min", "hace 2 h", "hace 3 días". Vacío si no hay hora; una hora futura (reloj adelantado) cuenta como ahora.
+  function relativeTime(ts, now) {
+    if (!Number.isFinite(ts) || ts <= 0) return '';
+    const diff = Math.max(0, now - ts);
+    const MIN = 60 * 1000, HOUR = 60 * MIN, DAY = 24 * HOUR;
+    if (diff < MIN) return 'hace un momento';
+    if (diff < HOUR) return 'hace ' + Math.floor(diff / MIN) + ' min';
+    if (diff < DAY) return 'hace ' + Math.floor(diff / HOUR) + ' h';
+    const days = Math.floor(diff / DAY);
+    return 'hace ' + days + (days === 1 ? ' día' : ' días');
+  }
+
+  // Qué enseña el punto de sincronización de la cabecera. Prioridad: sin conexión, sincronizando,
+  // error, cambios sin subir, sincronizado, sin sincronizar todavía.
+  function statusOf({ online = true, syncing = false, error = '', dirty = false, lastSyncAt = 0, now }) {
+    const last = relativeTime(lastSyncAt, now);
+    const lastText = last ? 'Última sincronización: ' + last : 'Todavía no se ha sincronizado en este dispositivo.';
+    if (!online) {
+      return {
+        state: 'offline', label: 'Sin conexión',
+        detail: dirty ? 'Tienes cambios sin subir; se subirán solos cuando vuelva la conexión. ' + lastText : 'No hay conexión. ' + lastText
+      };
+    }
+    if (syncing) return { state: 'syncing', label: 'Sincronizando…', detail: 'Subiendo y comprobando tus datos.' };
+    if (error) {
+      return {
+        state: 'error', label: 'Error al sincronizar',
+        detail: error + (dirty ? ' Tus cambios siguen guardados en este dispositivo.' : '') + ' ' + lastText
+      };
+    }
+    if (dirty) return { state: 'pending', label: 'Cambios sin subir', detail: 'Se subirán en unos segundos. ' + lastText };
+    if (last) return { state: 'ok', label: 'Sincronizado', detail: lastText };
+    return { state: 'unknown', label: 'Sin sincronizar todavía', detail: lastText };
+  }
+
+  const api = { relativeTime, statusOf, SYNC_INTERVAL_MS, shouldReadRemote, ownerAction, decideDoc, toFirestoreFields, fromFirestoreDoc };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.SyncCore = Object.assign(root.SyncCore || {}, api);
 })(typeof window !== 'undefined' ? window : globalThis);

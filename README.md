@@ -204,6 +204,20 @@ Abre `http://localhost:8000`. Sin servidor no funcionan ni el service worker ni 
 bash tests/run.sh
 ```
 
-Ejecuta los tests de `apps/*/tests/` y `shared/tests/` (y comprueba que todas las páginas incluyen `auth.js`) con Edge o Chrome sin interfaz (no hace falta Node). Cubren la lógica de Comidas (recetas, menú, lista, horarios), no el aspecto de las pantallas.
+Ejecuta los tests de `apps/*/tests/` y `shared/tests/` (y comprueba que todas las páginas incluyen `auth.js`) con Edge o Chrome sin interfaz (no hace falta Node). Cubren la lógica de Comidas (recetas, menú, lista, horarios, fotos, segundos platos) y la de sincronización; las pantallas se prueban con los tests de pantalla (abajo).
 
 La lógica de cada app se escribe con TDD: primero el test que falla, después el código mínimo para que pase.
+
+### Tests de pantalla (Playwright)
+
+```
+npm install        # una vez (necesita Node.js)
+npm run e2e
+```
+
+Abren las apps de verdad en Edge, con la cuenta de pruebas, y comprueban recetas con foto, segundos platos, Hoy, el uso sin conexión (con el service worker activo) y el punto de sincronización. Están en `tests/e2e/`.
+
+- **Prueban el código local contra el Firebase real.** `tests/e2e/fixtures.js` sirve los archivos del repositorio bajo la dirección de GitHub Pages (`https://ruzzz05.github.io/mi-app/`), así que Firebase los trata como la web publicada y no hace falta subir nada. Todo lo demás (Firebase, gstatic) va a internet.
+- **Cuenta de pruebas:** usuario y contraseña en `tests/e2e/credenciales.local.json`, que está en `.gitignore` (la web es pública: no se sube al repositorio). Si la cuenta no existe, los tests la crean. Al empezar cada test se borran sus datos en la nube (estado, fotos y gimnasio), solo los de esa cuenta.
+- **Sin conexión de verdad:** `setOffline()` corta la red y además hace que el servidor local rechace las peticiones, para que solo abra lo que el service worker tenga en caché.
+- **Punto de sincronización:** `shared/syncbadge.js` pinta el punto junto al botón de sincronizar (verde sincronizado, ámbar cambios sin subir, gris sin conexión, rojo error, azul sincronizando). Las reglas de qué estado toca están en `SyncCore.statusOf` (`shared/synccore.js`, con tests en `shared/tests`).

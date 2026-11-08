@@ -1,0 +1,29 @@
+{
+  "name": "mi-app",
+  "version": "1.0.0",
+  "description": "Mini-apps instalables (PWA) en GitHub Pages: Mi-Menu, Gimnasio y Vinilos.",
+  "main": "sw.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "bash tests/run.sh",
+    "e2e": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruzzz05/mi-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ruzzz05/mi-app/issues"
+  },
+  "homepage": "https://github.com/ruzzz05/mi-app#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.65.0"
+  }
+}

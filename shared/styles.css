@@ -188,3 +188,50 @@ select.field {
   right: 14px;
   z-index: 25;
 }
+
+/* ---------- Punto de sincronización (lo inserta shared/syncbadge.js junto al botón de sincronizar) ---------- */
+.sync-badge {
+  appearance: none;
+  width: 28px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.sync-badge::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8a8d91;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+.sync-badge[data-state="ok"]::before { background: #2e9d5b; }
+.sync-badge[data-state="pending"]::before { background: #e0a100; }
+.sync-badge[data-state="offline"]::before { background: #8a8d91; }
+.sync-badge[data-state="error"]::before { background: #d64545; }
+.sync-badge[data-state="unknown"]::before { background: transparent; box-shadow: inset 0 0 0 2px #8a8d91; }
+.sync-badge[data-state="syncing"]::before { background: #3b82f6; animation: sync-pulse 1s ease-in-out infinite; }
+@keyframes sync-pulse { 50% { opacity: .35; } }
+.sync-pop {
+  position: fixed;
+  top: calc(56px + env(safe-area-inset-top));
+  right: 12px;
+  z-index: 400;
+  max-width: min(300px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.sync-pop[hidden] { display: none; }
+.sync-pop span { color: var(--ink-2); }
