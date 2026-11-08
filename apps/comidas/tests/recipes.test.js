@@ -142,3 +142,33 @@ test('migrateState conserva updatedAt y lo pone a 0 si no existe', () => {
   assert.eq(Planner.migrateState({ dishes: [], updatedAt: 123 }).updatedAt, 123);
   assert.eq(Planner.migrateState({ dishes: [] }).updatedAt, 0);
 });
+
+// =========================================================
+// Etiquetas de ingredientes y ingredientes sin cantidad en el formulario
+// =========================================================
+test('knownIngredients junta los ingredientes de todas las recetas sin repetir', () => {
+  const ds = [dish('a', ['Pollo', 'tomate']), dish('b', ['pollo', 'Arroz'])];
+  assert.eq(Planner.knownIngredients(ds).map(i => i.name), ['Arroz', 'Pollo', 'tomate']);
+});
+
+test('knownIngredients devuelve la clave normalizada y ordena sin distinguir tildes ni mayusculas', () => {
+  const ds = [dish('a', ['Zanahoria', 'ácido', 'Cebolla'])];
+  assert.eq(Planner.knownIngredients(ds), [
+    { key: 'ácido', name: 'ácido' }, { key: 'cebolla', name: 'Cebolla' }, { key: 'zanahoria', name: 'Zanahoria' }
+  ]);
+});
+
+test('knownIngredients sin recetas o sin ingredientes da lista vacia', () => {
+  assert.eq(Planner.knownIngredients([]), []);
+  assert.eq(Planner.knownIngredients([dish('a', [])]), []);
+});
+
+test('buildIngredients usa cantidad 1 para ingredientes nuevos y descarta vacios', () => {
+  assert.eq(Planner.buildIngredients([' Pollo ', '', '  '], null), [{ name: 'Pollo', qty: 1 }]);
+});
+
+test('buildIngredients conserva la cantidad que ya tenia la receta (sin distinguir mayusculas)', () => {
+  const prev = dish('a', [{ name: 'pollo', qty: 2.5 }, 'arroz']);
+  assert.eq(Planner.buildIngredients(['Pollo', 'arroz', 'sal'], prev),
+    [{ name: 'Pollo', qty: 2.5 }, { name: 'arroz', qty: 1 }, { name: 'sal', qty: 1 }]);
+});

@@ -34,6 +34,23 @@
     };
   }
 
+  // Ingredientes usados en cualquier receta, sin repetir (por clave), ordenados: son las etiquetas.
+  function knownIngredients(dishes) {
+    const seen = new Map();
+    dishes.forEach(d => ingredientsOf(d).forEach(i => { if (!seen.has(i.key)) seen.set(i.key, i.name); }));
+    return [...seen].map(([key, name]) => ({ key, name })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }
+
+  // Del formulario (solo nombres) a ingredientes { name, qty }. La cantidad ya no se edita:
+  // se conserva la que tuviera la receta y, si es nuevo, vale 1.
+  function buildIngredients(names, prevDish) {
+    const prev = prevDish ? ingredientsOf(prevDish) : [];
+    return names.map(n => String(n).trim()).filter(Boolean).map(name => {
+      const old = prev.find(i => i.key === norm(name));
+      return { name, qty: old ? old.qty : 1 };
+    });
+  }
+
   // Ingrediente de mayor cantidad. Si varios empatan no hay uno principal (null):
   // elegir el primero sería arbitrario.
   function mainIngredient(dish) {
@@ -100,7 +117,7 @@
     };
   }
 
-  const api = { norm, newId, emptyList, parseQty, formatQty, ingredientsOf, normalizeDish, mainIngredient, migrateState };
+  const api = { norm, newId, emptyList, parseQty, formatQty, ingredientsOf, normalizeDish, knownIngredients, buildIngredients, mainIngredient, migrateState };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Planner = Object.assign(root.Planner || {}, api);
 })(typeof window !== 'undefined' ? window : globalThis);

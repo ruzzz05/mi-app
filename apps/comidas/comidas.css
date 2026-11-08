@@ -178,6 +178,7 @@ body {
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .chips:empty { display: none; }
+.chip[hidden] { display: none; }
 .chip {
   appearance: none;
   display: inline-flex;
@@ -354,7 +355,7 @@ textarea.field { min-height: 120px; padding: 12px 16px; resize: vertical; line-h
 .eyebrow { margin: 4px 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); }
 
 /* Recetas */
-.ing-row { display: grid; grid-template-columns: 1fr 76px 44px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ing-row { display: grid; grid-template-columns: 1fr 44px; gap: 8px; align-items: center; margin-bottom: 8px; }
 .hint { margin: 10px 0 0; font-size: 12px; color: var(--ink-3); }
 
 /* Crear menú */
