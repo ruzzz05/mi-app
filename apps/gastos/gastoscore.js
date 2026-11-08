@@ -24,8 +24,11 @@
   const yearlyCost = sub => round2(sub.amount * PER_YEAR[sub.period]);
   const monthlyCost = sub => round2(yearlyCost(sub) / 12);
 
-  function subscriptionTotals(subs) {
-    const active = subs.filter(s => !s.paused);
+  // Activa = no pausada y, si tiene fecha de fin ("until", último día vigente), todavía no terminada.
+  const isActive = (sub, today) => !sub.paused && !(sub.until && today && sub.until < today);
+
+  function subscriptionTotals(subs, today) {
+    const active = subs.filter(s => isActive(s, today));
     return {
       monthly: round2(active.reduce((t, s) => t + monthlyCost(s), 0)),
       yearly: round2(active.reduce((t, s) => t + yearlyCost(s), 0)),
@@ -41,7 +44,13 @@
     return addMonths(sub.anchor, (sub.period === 'year' ? 12 : 1) * k);
   }
 
+  // null si el siguiente cobro cae después de la fecha de fin.
   function nextCharge(sub, today) {
+    const d = rawNextCharge(sub, today);
+    return sub.until && d > sub.until ? null : d;
+  }
+
+  function rawNextCharge(sub, today) {
     if (sub.anchor >= today) return sub.anchor;
     const gap = daysBetween(sub.anchor, today);
     let k = Math.max(0, Math.floor(gap / (sub.period === 'week' ? 7 : sub.period === 'year' ? 366 : 31)) - 1);
@@ -53,9 +62,52 @@
   function upcomingCharges(subs, today, within) {
     return subs
       .filter(s => !s.paused)
-      .map(sub => { const date = nextCharge(sub, today); return { sub, date, days: daysBetween(today, date) }; })
-      .filter(u => u.days <= within)
+      .map(sub => { const date = nextCharge(sub, today); return date && { sub, date, days: daysBetween(today, date) }; })
+      .filter(u => u && u.days <= within)
       .sort((a, b) => a.days - b.days || a.sub.name.localeCompare(b.sub.name, 'es'));
+  }
+
+  // Cobros que quedan desde hoy hasta la fecha de fin. null si no tiene fecha de fin.
+  function remainingCharges(sub, today) {
+    if (!sub.until) return null;
+    let n = 0;
+    for (let d = nextCharge(sub, today); d && n < 1000; d = nextCharge(sub, addDays(d, 1))) n++;
+    return n;
+  }
+
+  // ---------- datos para los gráficos
+  const daysInMonth = month => new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+  const shiftMonth = (month, n) => addMonths(month + '-01', n).slice(0, 7);
+
+  // Total gastado cada día del mes (posición 0 = día 1).
+  function dailySeries(expenses, month) {
+    const out = Array(daysInMonth(month)).fill(0);
+    expenses.forEach(e => { if (e.date.startsWith(month)) out[Number(e.date.slice(8, 10)) - 1] += e.amount; });
+    return out.map(round2);
+  }
+
+  // Los últimos n meses (el último es `month`), con 0 si no hubo gastos.
+  function lastMonths(expenses, month, n) {
+    return Array.from({ length: n }, (_, i) => {
+      const m = shiftMonth(month, i - (n - 1));
+      return { month: m, total: round2(expenses.filter(e => e.date.startsWith(m)).reduce((t, e) => t + e.amount, 0)) };
+    });
+  }
+
+  // Cobros de suscripciones que caen en el mes (activas, sin pasar de su fecha de fin).
+  function chargesInMonth(subs, month) {
+    const start = month + '-01', end = month + '-' + String(daysInMonth(month)).padStart(2, '0');
+    const out = [];
+    subs.filter(s => !s.paused).forEach(sub => {
+      for (let d = nextCharge(sub, start); d && d <= end; d = nextCharge(sub, addDays(d, 1))) out.push({ sub, date: d });
+    });
+    return out.sort((a, b) => a.date.localeCompare(b.date) || a.sub.name.localeCompare(b.sub.name, 'es'));
+  }
+
+  // Cuánto se habrá gastado a final de mes si sigue el ritmo actual.
+  function projectMonth(total, today) {
+    const day = Number(today.slice(8, 10));
+    return round2(total / day * daysInMonth(today.slice(0, 7)));
   }
 
   // ---------- nombres de comercios
@@ -147,6 +199,7 @@
   }
 
   const api = {
+    isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, projectMonth,
     addDays, addMonths, daysBetween, yearlyCost, monthlyCost, subscriptionTotals, nextCharge, upcomingCharges,
     merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId
   };

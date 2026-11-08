@@ -1,4 +1,4 @@
-// Versión de la app: pequeña, abajo a la derecha del menú inicial. Se cambia solo en shared/version.js.
+// Versión de la app: pequeña, al final de la portada a la derecha (como GitHub, LinkedIn y la cuenta). Se cambia solo en shared/version.js.
 const fs = require('fs');
 const path = require('path');
 const { test, expect, openApp } = require('./fixtures');
@@ -14,6 +14,7 @@ test('la portada enseña la versión pequeña, abajo a la derecha', async ({ pag
   const shown = await v.textContent();
   expect(shown).toBe('v' + await page.evaluate(() => window.APP_VERSION));
 
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)); // está al final de la página
   const box = await v.boundingBox();
   const view = page.viewportSize();
   expect(box.x).toBeGreaterThan(view.width / 2);               // mitad derecha

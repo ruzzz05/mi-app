@@ -2,7 +2,8 @@
 // cuando se usa. La lógica de qué hacer con la respuesta está en ticketcore.js.
 (() => {
   const SDK = 'https://www.gstatic.com/firebasejs/11.10.0/';
-  const MODEL = 'gemini-3.8-flash';
+  // Lite: lee el ticket en ~1 s (medido). Los modelos "flash" normales tardaban entre 20 s y 2 min.
+  const MODEL = 'gemini-flash-lite-latest';
   const MAX_SIDE = 1600; // los tickets tienen letra pequeña: más grande que las fotos de recetas
 
   // Reduce la foto y la devuelve como JPEG en base64 (sin el prefijo "data:").
@@ -36,12 +37,16 @@
     return model;
   }
 
-  // Devuelve el texto que responde la IA. Los tests de pantalla sustituyen esta función.
-  async function read(file, prompt) {
+  // Devuelve el texto que responde la IA. onStep('prepare') y onStep('read') avisan de cada fase.
+  // Los tests de pantalla sustituyen esta función.
+  async function read(file, prompt, onStep) {
+    const step = onStep || (() => {});
+    step('prepare');
     const [data, m] = await Promise.all([toJpegBase64(file), getModel()]);
+    step('read');
     const result = await m.generateContent([{ inlineData: { mimeType: 'image/jpeg', data } }, prompt]);
     return result.response.text();
   }
 
-  window.Ticket = { read };
+  window.Ticket = { read, timeoutMs: 45000 };
 })();

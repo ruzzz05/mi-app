@@ -464,3 +464,23 @@ input[type="search"].field { -webkit-appearance: none; appearance: none; }
 .cam-btn svg { width: 22px; height: 22px; }
 .ticket-row { cursor: pointer; }
 #ticket-ok { width: 100%; margin-top: 12px; }
+
+/* Ventana del ticket: pasos del proceso */
+.tk-photo { display: flex; justify-content: center; margin-bottom: 14px; }
+.tk-photo img { max-height: 160px; max-width: 70%; border-radius: 12px; border: 1px solid var(--line); object-fit: contain; background: var(--surface); }
+.tk-steps { list-style: none; margin: 0 0 8px; padding: 0; }
+.tk-step { display: flex; align-items: center; gap: 12px; padding: 10px 2px; color: var(--ink-3); font-weight: 600; }
+.tk-step.active { color: var(--ink); }
+.tk-step.done { color: var(--ink-2); }
+.tk-step.error { color: #c0392b; }
+.tk-dot { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 13px; font-weight: 800; flex: none; }
+.tk-step.active .tk-dot { border-color: var(--ink); border-top-color: transparent; animation: tk-spin .8s linear infinite; }
+.tk-step.done .tk-dot { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-ink); }
+.tk-step.error .tk-dot { border-color: #c0392b; color: #c0392b; }
+.tk-msg { margin: 6px 0 14px; color: var(--ink-2); }
+.tk-result { margin: 0 0 12px; font-weight: 600; }
+.tk-result.none { color: var(--ink-2); }
+@keyframes tk-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .tk-step.active .tk-dot { animation: none; } }
+
+.toolbar .cam-btn { flex: none; min-width: 56px; }

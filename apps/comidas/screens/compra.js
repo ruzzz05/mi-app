@@ -13,21 +13,61 @@
   const setList = list => { C.state.list = list; C.save(); C.render(); };
   let boughtOpen = false; // el bloque "Comprados" recuerda si estaba desplegado
 
-  // Foto del ticket: la IA dice qué productos de la lista salen; tú confirmas y pasan a comprados.
+  // Foto del ticket en una ventana flotante: se ve cada paso (preparar la foto, leerla con la IA,
+  // buscar tus productos) y al final tú confirmas qué pasa a comprados.
+  const STEPS = [['prepare', 'Preparando la foto'], ['read', 'Leyendo el ticket con Gemini'], ['match', 'Buscando tus productos']];
+  const pause = ms => new Promise(r => setTimeout(r, ms)); // que cada paso se alcance a ver
+  let scanId = 0;
+
+  function progressHtml(photoUrl, current, failedAt, message) {
+    const idx = STEPS.findIndex(s => s[0] === current);
+    return `
+      <div class="tk-photo">${photoUrl ? `<img src="${photoUrl}" alt="Foto del ticket">` : ''}</div>
+      <ol class="tk-steps">${STEPS.map(([id, label], i) => {
+        const state = failedAt === id ? 'error' : (idx > i || (current === 'done')) ? 'done' : idx === i ? 'active' : '';
+        return `<li class="tk-step ${state}"><span class="tk-dot">${state === 'done' ? '✓' : state === 'error' ? '!' : ''}</span>${label}</li>`;
+      }).join('')}</ol>
+      ${message ? `<p class="tk-msg">${esc(message)}</p><button id="ticket-retry" class="btn" type="button">Reintentar</button>` : ''}`;
+  }
+
   async function scanTicket(file) {
     const pending = P.pendingItems(items());
     if (!pending.length) { C.toast('No hay nada pendiente en la lista'); return; }
-    C.toast('Leyendo el ticket…', 30000);
-    let keys;
+    const id = ++scanId;
+    const alive = () => id === scanId && C.sheetOpen();
+    const photoUrl = URL.createObjectURL(file);
+    let current = 'prepare';
+    const show = (cur, failedAt, message) => { current = cur; if (alive()) { $('sheet-body').innerHTML = progressHtml(photoUrl, cur, failedAt, message); if (message) $('ticket-retry').onclick = () => scanTicket(file); } };
+    const fail = (at, message) => { if (alive()) show(at, at, message); };
+
+    C.openSheet('Leyendo el ticket', '');
+    show('prepare');
+    let text;
     try {
-      keys = P.parseTicketMatches(await window.Ticket.read(file, P.ticketPrompt(pending)), pending);
+      const limit = window.Ticket.timeoutMs || 45000;
+      let timer;
+      const timeout = new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('timeout')), limit); });
+      text = await Promise.race([
+        window.Ticket.read(file, P.ticketPrompt(pending), step => { if (step !== current) show(step); }),
+        timeout
+      ]);
+      clearTimeout(timer);
     } catch (err) {
       console.warn('Ticket:', err);
-      C.toast('No se pudo leer el ticket. Inténtalo de nuevo.', 3500);
+      fail(current === 'prepare' ? 'prepare' : 'read', err && err.message === 'timeout'
+        ? 'Gemini tardó demasiado en responder. Comprueba la conexión e inténtalo de nuevo.'
+        : 'No se pudo leer el ticket. Comprueba la conexión e inténtalo de nuevo.');
       return;
     }
-    $('toast').classList.remove('show');
-    if (!keys.length) { C.toast('No he encontrado productos de tu lista en el ticket', 3500); return; }
+    if (!alive()) return; // cerraste la ventana: se descarta el resultado
+    show('match');
+    await pause(450);
+    if (!alive()) return;
+    const keys = P.parseTicketMatches(text, pending);
+    show('done');
+    await pause(300);
+    if (!alive()) return;
+
     const row = it => `
       <label class="buy ticket-row">
         <span class="buy-main"><input type="checkbox" data-ticket="${esc(it.key)}" ${keys.includes(it.key) ? 'checked' : ''}>
@@ -35,11 +75,14 @@
       </label>`;
     const found = pending.filter(it => keys.includes(it.key));
     const rest = pending.filter(it => !keys.includes(it.key));
-    C.openSheet('Confirmar ticket', `
-      <p class="sub">Esto es lo que he encontrado en el ticket. Desmarca lo que no sea correcto.</p>
+    $('sheet-title').textContent = 'Confirmar ticket';
+    $('sheet-body').innerHTML = `
+      <p class="tk-result ${found.length ? 'ok' : 'none'}">${found.length
+        ? `He encontrado ${found.length} de ${pending.length} productos de tu lista. Desmarca los que no sean correctos.`
+        : 'No he encontrado ningún producto de tu lista en el ticket. Si compraste alguno, márcalo a mano.'}</p>
       ${found.map(row).join('')}
-      ${rest.length ? `<details class="bought"><summary>No aparecen en el ticket (${rest.length})</summary>${rest.map(row).join('')}</details>` : ''}
-      <button id="ticket-ok" class="btn" type="button">Marcar como comprados</button>`);
+      ${rest.length ? `<details class="bought" ${found.length ? '' : 'open'}><summary>${found.length ? 'No aparecen en el ticket' : 'Tu lista'} (${rest.length})</summary>${rest.map(row).join('')}</details>` : ''}
+      <button id="ticket-ok" class="btn" type="button">Marcar como comprados</button>`;
     $('ticket-ok').onclick = () => {
       const chosen = [...document.querySelectorAll('#sheet-body [data-ticket]:checked')].map(i => i.dataset.ticket);
       C.closeSheet();
