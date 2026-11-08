@@ -82,6 +82,28 @@
   color-scheme: light;
 }
 
+/* Cuarto modo, niebla: gris azulado medio (ni claro ni casi negro) con acento azul claro. */
+:root[data-theme="niebla"] {
+  --bg: #50585F;
+  --surface: #5C656C;
+  --surface-2: #666F76;
+  --ink: #F2F7FA;
+  --ink-2: #C3CFD6;
+  --ink-3: #A9B7C0;
+  --line: #6D777F;
+  --btn-bg: #A5D6EE;
+  --btn-ink: #2A3238;
+  --accent: #A5D6EE;
+  --accent-soft: #687B87;
+  --tab-bg: #5C656C;
+  --tab-ink: #A5D6EE;
+  --ok: #A5D6EE;
+  --on-ok: #2A3238;
+  --lv0: #666F76; --lv1: #728793; --lv2: #84A3B4; --lv3: #96BFD4; --lv4: #A5D6EE;
+  --shadow: 0 1px 2px rgba(0,0,0,.30), 0 8px 24px rgba(0,0,0,.28);
+  color-scheme: dark;
+}
+
 /* La app ocupa exactamente la pantalla y solo se desplaza el contenido (igual que Mi-Menu). */
 html { height: 100%; overflow: hidden; background: var(--bg); }
 body {

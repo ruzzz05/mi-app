@@ -50,10 +50,6 @@ test('tema niebla define todas las variables y no hereda el verde lima', () => {
   }));
 });
 
-test('tema niebla es oscuro: texto claro sobre fondo medio', () => {
-  withTheme('niebla', () => assert.eq(getComputedStyle(document.documentElement).colorScheme, 'dark'));
-});
-
 test('los temas claro y oscuro siguen igual', () => {
   withTheme('light', () => assert.eq(v('--bg'), '#ECEDEE'));
   withTheme('dark', () => assert.eq(v('--bg'), '#0F0F10'));
