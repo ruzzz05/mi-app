@@ -201,7 +201,6 @@
 
   // ---------- Presupuesto, meses, categorías y exportar ----------
   const DEFAULT_MONTH_BUDGET = 1000;
-  const DEFAULT_BUDGETS = { Supermercado: 350, Restaurantes: 120, Transporte: 100, Suscripciones: 80, Ocio: 120, Salud: 60, Hogar: 100, Otros: 70 };
 
   // Los pagos que llegan solos (Apple Pay) esperan a que los revises: no cuentan hasta confirmarlos.
   const confirmed = list => list.filter(e => !e.pending);
@@ -235,15 +234,15 @@
     }));
   }
 
-  // Gasto de un mes por categoría frente al presupuesto de cada una, del que más gasta al que menos.
-  function categoryRows(expenses, month, budgets) {
+  // Gasto confirmado de un mes por categoría (las de la lista y las que tengan gasto), del que más al que menos,
+  // con su parte del total del mes en %.
+  function categoryTotals(expenses, month, categories) {
     const spent = {};
     confirmed(expenses).filter(e => e.date.startsWith(month)).forEach(e => { spent[e.category] = (spent[e.category] || 0) + e.amount; });
-    const names = [...new Set([...Object.keys(budgets), ...Object.keys(spent)])];
-    return names.map(category => {
-      const s = round2(spent[category] || 0), budget = budgets[category] || 0;
-      return { category, spent: s, budget, pct: budget > 0 ? Math.min(100, Math.round(s / budget * 100)) : 0, over: budget > 0 && s > budget };
-    }).sort((a, b) => b.spent - a.spent || a.category.localeCompare(b.category, 'es'));
+    const total = Object.values(spent).reduce((a, b) => a + b, 0);
+    return [...new Set([...categories, ...Object.keys(spent)])]
+      .map(category => ({ category, spent: round2(spent[category] || 0), pct: total > 0 ? Math.round((spent[category] || 0) / total * 100) : 0 }))
+      .sort((a, b) => b.spent - a.spent || a.category.localeCompare(b.category, 'es'));
   }
 
   // Texto CSV (separado por ;, con coma decimal) para abrirlo en una hoja de cálculo en español.
@@ -263,6 +262,23 @@
     return e ? { ...e, pending: true } : null;
   }
 
+
+  // ---------- categorías propias
+  const MAX_CAT = 24;
+  // Devuelve la lista con la categoría nueva al final, o null si está vacía, es demasiado larga o ya existe.
+  function addCategory(cats, name) {
+    const n = String(name || '').trim();
+    if (!n || n.length > MAX_CAT || cats.some(c => fold(c) === fold(n))) return null;
+    return [...cats, n];
+  }
+  // Quita una categoría: sus gastos pasan a 'Otros'. 'Otros' no se puede quitar.
+  function removeCategory(cats, expenses, name) {
+    if (name === 'Otros' || !cats.includes(name)) return null;
+    return {
+      categories: cats.filter(c => c !== name),
+      expenses: expenses.map(e => e.category === name ? { ...e, category: 'Otros' } : e)
+    };
+  }
 
   // Un documento del buzón de Firestore (gastosInbox/{id}, escrito por el Atajo) -> gasto, o null si no vale.
   // El id sale del documento para que importarlo dos veces no lo duplique. Si la categoría se adivina por
@@ -286,7 +302,7 @@
   }
 
   const api = {
-    DEFAULT_MONTH_BUDGET, DEFAULT_BUDGETS, euros, fromQuery, fromInboxDoc, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryRows, toCSV,
+    DEFAULT_MONTH_BUDGET, euros, fromQuery, fromInboxDoc, addCategory, removeCategory, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryTotals, toCSV,
     isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, projectMonth,
     addDays, addMonths, daysBetween, yearlyCost, monthlyCost, subscriptionTotals, nextCharge, upcomingCharges,
     merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId

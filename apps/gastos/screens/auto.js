@@ -12,8 +12,8 @@
     const list = P.pendingList(G.state.expenses);
     el.innerHTML = `
       <div class="screen-title">Pagos con Apple Pay</div>
-      <div class="stat">
-        <b>Cómo se configura (una sola vez)</b>
+      <details class="stat tut">
+        <summary>Cómo se configura (una sola vez)</summary>
         <ol class="steps">
           <li>En Atajos, ve a <i>Automatización</i> y pulsa +. Elige <i>Transacción</i>, marca tus tarjetas y activa <i>Ejecutar inmediatamente</i>.</li>
           <li>Primera acción, <i>Texto</i>, con esto (sustituye TU_CLAVE y arrastra las variables <i>Importe</i> y <i>Comercio</i> a su sitio):</li>
@@ -27,7 +27,7 @@
           <li>En esa acción: cabecera <i>Content-Type</i> = <i>application/json</i> y <i>Cuerpo de la solicitud</i> = <i>Archivo</i>, eligiendo el Texto anterior.</li>
         </ol>
         <small>Cada pago llega solo a la nube y la app lo apunta al abrirla. Si el comercio no se reconoce, queda aquí por revisar.</small>
-      </div>
+      </details>
       <div class="secx"><h3>Por revisar (${list.length})</h3><small>Confirma la categoría</small></div>
       <div class="lst">${list.map(p => `<div class="pend">
         <span class="ico" style="--k:${G.colorOf(p.category)}">${esc(p.merchant[0].toUpperCase())}</span>

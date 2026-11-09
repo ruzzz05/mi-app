@@ -161,12 +161,32 @@ test.describe('Gastos', () => {
     await expect(page.locator('#ring-main')).toHaveText(/1\.900/);
   });
 
-  test('ajustes: el tema de color abre el selector y exportar descarga el CSV', async ({ page }) => {
+  test('ajustes: se pueden añadir y quitar categorías, y ya no hay fila de tema', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Cine', category: 'Ocio', amount: 5, date: ctx.today }] }));
+    await page.locator('#dock [data-screen="ajustes"]').click();
+    await expect(page.locator('[data-set="theme"]')).toHaveCount(0);
+    await page.locator('[data-set="cats"]').click();
+    await page.locator('#cat-new').fill('Mascotas');
+    await page.locator('#cat-add').click();
+    await expect(page.locator('#sheet-body [data-del="Mascotas"]')).toHaveCount(1);
+    await page.locator('#sheet-body [data-del="Ocio"]').click();
+    await expect(page.locator('#sheet-body [data-del="Ocio"]')).toHaveCount(0);
+    await expect(page.locator('#sheet-body [data-del="Otros"]')).toHaveCount(0);
+  });
+
+  test('automático: el tutorial se despliega y se esconde', async ({ page }) => {
+    await page.locator('#dock [data-screen="auto"]').click();
+    const tut = page.locator('details.tut');
+    await expect(tut).not.toHaveAttribute('open', '');
+    await tut.locator('summary').click();
+    await expect(tut).toHaveAttribute('open', '');
+    await tut.locator('summary').click();
+    await expect(tut).not.toHaveAttribute('open', '');
+  });
+
+  test('ajustes: exportar descarga el CSV', async ({ page }) => {
     await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Cine', category: 'Ocio', amount: 12.5, date: ctx.today }] }));
     await page.locator('#dock [data-screen="ajustes"]').click();
-    await page.locator('[data-set="theme"]').click();
-    await expect(page.locator('#palette-picker')).toBeVisible();
-    await page.keyboard.press('Escape');
     const [download] = await Promise.all([page.waitForEvent('download'), page.locator('[data-set="export"]').click()]);
     expect(download.suggestedFilename()).toMatch(/gastos.*\.csv$/);
     const text = require('fs').readFileSync(await download.path(), 'utf8');

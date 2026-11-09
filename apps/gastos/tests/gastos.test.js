@@ -154,3 +154,22 @@ test('fromInboxDoc rechaza documentos sin importe válido', () => {
   assert.eq(G.fromInboxDoc({ name: 'x/y/z', fields: {} }), null);
   assert.eq(G.fromInboxDoc(null), null);
 });
+
+// ---- categorías propias
+test('addCategory añade al final, recorta y rechaza vacías o repetidas (sin mirar mayúsculas ni tildes)', () => {
+  const base = ['Ocio', 'Otros'];
+  assert.eq(G.addCategory(base, '  Mascotas '), ['Ocio', 'Otros', 'Mascotas']);
+  assert.eq(G.addCategory(base, ''), null);
+  assert.eq(G.addCategory(base, '   '), null);
+  assert.eq(G.addCategory(base, 'ocio'), null);
+  assert.eq(G.addCategory(['Café'], 'cafe'), null);
+  assert.eq(G.addCategory(base, 'x'.repeat(25)), null);
+});
+
+test('removeCategory pasa sus gastos a Otros y no deja quitar Otros', () => {
+  const ex = [{ id: 'a', category: 'Ocio', amount: 5 }, { id: 'b', category: 'Salud', amount: 7 }];
+  const r = G.removeCategory(['Ocio', 'Salud', 'Otros'], ex, 'Ocio');
+  assert.eq(r.categories, ['Salud', 'Otros']);
+  assert.eq(r.expenses.map(e => e.category), ['Otros', 'Salud']);
+  assert.eq(G.removeCategory(['Ocio', 'Otros'], ex, 'Otros'), null);
+});

@@ -23,7 +23,7 @@ async function collect() {
     const { documents = [] } = await call('GET', BASE + '?pageSize=100');
     if (!documents.length) return;
     const known = new Set(G.state.expenses.map(e => e.id));
-    const fresh = documents.map(P.fromInboxDoc).filter(e => e && !known.has(e.id));
+    const fresh = documents.map(P.fromInboxDoc).filter(e => e && !known.has(e.id)).map(G.normalize);
     if (fresh.length) {
       G.state.expenses = [...fresh, ...G.state.expenses];
       G.save(); G.render();

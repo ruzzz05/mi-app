@@ -4,8 +4,10 @@
   const P = window.Planner;
   const KEY = 'gastos.v1';
   const NAMES = ['resumen', 'subs', 'auto', 'ajustes'];
-  const CATEGORIES = ['Supermercado', 'Restaurantes', 'Transporte', 'Suscripciones', 'Ocio', 'Salud', 'Hogar', 'Otros'];
+  const DEFAULT_CATEGORIES = ['Supermercado', 'Restaurantes', 'Transporte', 'Suscripciones', 'Ocio', 'Salud', 'Hogar', 'Otros'];
   const CAT_COLORS = { Supermercado: '#2FD08A', Restaurantes: '#FF8A5B', Transporte: '#5B9BFF', Suscripciones: '#B58CFF', Ocio: '#FFB547', Salud: '#5BD1E8', Hogar: '#F2C94C', Otros: '#7C8B99' };
+
+  const EXTRA_COLORS = ['#FF6FA5', '#4DD4C1', '#9AD94A', '#FF9F6B', '#7E8CFF', '#E57BE5'];
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -18,11 +20,12 @@
     let s = null;
     try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { /* datos rotos: se empieza de cero */ }
     s = s || {};
+    const categories = Array.isArray(s.categories) && s.categories.includes('Otros') ? s.categories : DEFAULT_CATEGORIES.slice();
     return {
       expenses: Array.isArray(s.expenses) ? s.expenses : [],
       subs: Array.isArray(s.subs) ? s.subs : [],
       budget: s.budget > 0 ? s.budget : P.DEFAULT_MONTH_BUDGET,
-      budgets: { ...P.DEFAULT_BUDGETS, ...(s.budgets || {}) },
+      categories,
       updatedAt: s.updatedAt || 0
     };
   }
@@ -34,8 +37,10 @@
   const view = { y: now.getFullYear(), m: now.getMonth(), tab: 0 };   // mes que se enseña y pestaña del resumen
 
   const G = window.Gastos = {
-    state: load(), $, esc, eur, eur0, todayISO, isoOf, CATEGORIES, CAT_COLORS, view,
-    colorOf: c => CAT_COLORS[c] || CAT_COLORS.Otros,
+    state: load(), $, esc, eur, eur0, todayISO, isoOf, CAT_COLORS, view,
+    get CATEGORIES() { return G.state.categories; },
+    // Las categorías propias toman un color de la rueda según su posición
+    colorOf: c => CAT_COLORS[c] || EXTRA_COLORS[Math.max(0, G.state.categories.indexOf(c)) % EXTRA_COLORS.length],
     viewMonth: () => `${view.y}-${String(view.m + 1).padStart(2, '0')}`,
     isCurrentMonth: () => G.viewMonth() === todayISO().slice(0, 7),
 
@@ -94,7 +99,7 @@
       G.openSheet('Nuevo gasto', `
         <input id="ex-amount" class="field amount-in" type="text" inputmode="decimal" placeholder="0,00 €" autocomplete="off" aria-label="Importe">
         <input id="ex-merchant" class="field" type="text" placeholder="¿Dónde? (Mercadona, Cine…)" autocomplete="off" aria-label="Dónde">
-        <div class="cats" id="ex-cats">${CATEGORIES.map(c => `<button type="button" data-cat="${esc(c)}"><i style="background:${G.colorOf(c)}"></i>${esc(c)}</button>`).join('')}</div>
+        <div class="cats" id="ex-cats">${G.CATEGORIES.map(c => `<button type="button" data-cat="${esc(c)}"><i style="background:${G.colorOf(c)}"></i>${esc(c)}</button>`).join('')}</div>
         <div class="sheet-actions"><button id="ex-save" class="btn big" type="button">Guardar gasto</button></div>`);
       let cat = null;
       const mark = () => document.querySelectorAll('#ex-cats [data-cat]').forEach(b => b.classList.toggle('on', b.dataset.cat === cat));
@@ -113,11 +118,14 @@
       setTimeout(() => $('ex-amount').focus(), 50);
     },
 
+    // Un pago de fuera con una categoría que ya no existe pasa a 'Otros' y queda por revisar
+    normalize(e) { return G.CATEGORIES.includes(e.category) ? e : { ...e, category: 'Otros', pending: true }; },
+
     // Un pago que llega con la dirección del Atajo (?pago=12,50&comercio=Mercadona) queda por revisar
     takePaymentFromUrl() {
       const e = P.fromQuery(location.search, Date.now());
       if (!e) return;
-      G.state.expenses = [e, ...G.state.expenses];
+      G.state.expenses = [G.normalize(e), ...G.state.expenses];
       G.save();
       try { history.replaceState(null, '', location.pathname); } catch (err) { /* sin historial */ }
       G.toast('Pago por revisar: ' + e.merchant);

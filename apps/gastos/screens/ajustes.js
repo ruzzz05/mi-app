@@ -1,10 +1,10 @@
-// Pantalla Ajustes: presupuesto del mes, presupuesto por categoría, tema de color y exportar a CSV.
+// Pantalla Ajustes: presupuesto del mes, categorías, exportar a CSV.
 (() => {
   const G = window.Gastos;
   const P = window.Planner;
   const { $, esc, eur0 } = G;
 
-  const ROW_ICONS = { budget: '€', cats: '▦', theme: '◐', export: '↓' };
+  const ROW_ICONS = { budget: '€', cats: '▦', export: '↓' };
   const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
 
   function download(name, text) {
@@ -28,25 +28,31 @@
   }
 
   function openCategories() {
-    G.openSheet('Presupuesto por categoría', `
-      ${G.CATEGORIES.map(c => `<label class="cb"><span class="ico" style="--k:${G.colorOf(c)}">${esc(c[0])}</span><span>${esc(c)}</span>
-        <input class="field" type="text" inputmode="decimal" data-cb="${esc(c)}" value="${String(G.state.budgets[c] || 0).replace('.', ',')}" aria-label="Presupuesto de ${esc(c)}"></label>`).join('')}
-      <div class="sheet-actions"><button id="cb-save" class="btn big" type="button">Guardar</button></div>`);
-    $('cb-save').onclick = () => {
-      document.querySelectorAll('#sheet-body [data-cb]').forEach(i => { const v = P.parseAmount(i.value); G.state.budgets[i.dataset.cb] = v === null ? 0 : v; });
-      G.save(); G.closeSheet(); G.render(); G.toast('Presupuestos guardados');
+    G.openSheet('Categorías', `
+      ${G.CATEGORIES.map(c => `<div class="cb"><span class="ico" style="--k:${G.colorOf(c)}">${esc(c[0])}</span><span>${esc(c)}</span>
+        ${c === 'Otros' ? '<span class="x"></span>' : `<button class="x" type="button" data-del="${esc(c)}" aria-label="Quitar ${esc(c)}">×</button>`}</div>`).join('')}
+      <div class="cb"><input id="cat-new" class="field" type="text" maxlength="24" placeholder="Nueva categoría" autocomplete="off" aria-label="Nueva categoría" style="width:auto;flex:1;text-align:left"><button id="cat-add" class="btn small" type="button">Añadir</button></div>
+      <p class="hint">Al quitar una categoría, sus gastos pasan a «Otros». «Otros» no se puede quitar.</p>`);
+    $('cat-add').onclick = () => {
+      const list = P.addCategory(G.state.categories, $('cat-new').value);
+      if (!list) { G.toast('Nombre vacío o repetido'); return; }
+      G.state.categories = list; G.save(); G.render(); openCategories();
     };
+    $('sheet-body').querySelectorAll('[data-del]').forEach(b => { b.onclick = () => {
+      const r = P.removeCategory(G.state.categories, G.state.expenses, b.dataset.del);
+      if (!r) return;
+      G.state.categories = r.categories; G.state.expenses = r.expenses;
+      G.save(); G.render(); openCategories();
+    }; });
   }
 
   function render(el) {
-    const palette = window.PaletteCore ? window.PaletteCore.resolve(window.MiPalette && window.MiPalette.get()).name : '';
     const row = (key, title, value) => `<button class="setrow" type="button" data-set="${key}"><span class="ico2">${ROW_ICONS[key]}</span>${title}<span class="v">${esc(value)}</span>${CHEV}</button>`;
     el.innerHTML = `
       <div class="screen-title">Ajustes</div>
       <div class="lst">
         ${row('budget', 'Presupuesto mensual', eur0(G.state.budget))}
-        ${row('cats', 'Categorías y presupuestos', String(G.CATEGORIES.length))}
-        ${row('theme', 'Tema de color', palette)}
+        ${row('cats', 'Categorías', String(G.CATEGORIES.length))}
         ${row('export', 'Exportar datos', 'CSV')}
       </div>
       <p class="hint">Los datos se guardan en este móvil.</p>`;
@@ -56,7 +62,6 @@
       const k = b.dataset.set;
       if (k === 'budget') openBudget();
       else if (k === 'cats') openCategories();
-      else if (k === 'theme') window.MiPalette.open();
       else if (k === 'export') {
         if (!P.confirmed(G.state.expenses).length) { G.toast('No hay gastos que exportar'); return; }
         download(`gastos-${G.todayISO()}.csv`, P.toCSV(G.state.expenses));

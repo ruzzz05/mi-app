@@ -39,20 +39,16 @@ test('groupByDay ignora los pagos por revisar', () => {
   assert.eq(M.groupByDay([ex(10, '2026-11-20', { pending: true })], '2026-11-20'), []);
 });
 
-test('categoryRows reparte el mes por categoría con su presupuesto, del que más gasta al que menos', () => {
-  const list = [ex(300, '2026-11-02', { category: 'Supermercado' }), ex(50, '2026-11-03', { category: 'Ocio' }), ex(20, '2026-10-03', { category: 'Ocio' })];
-  const r = M.categoryRows(list, '2026-11', { Supermercado: 400, Ocio: 100, Otros: 50 });
-  assert.eq(r.map(x => [x.category, x.spent, x.budget, x.pct, x.over]), [['Supermercado', 300, 400, 75, false], ['Ocio', 50, 100, 50, false], ['Otros', 0, 50, 0, false]]);
+test('categoryTotals cuenta lo gastado en el mes por categoría, del que más al que menos, con su parte del total', () => {
+  const list = [ex(300, '2026-11-02', { category: 'Supermercado' }), ex(100, '2026-11-03', { category: 'Ocio' }), ex(20, '2026-10-03', { category: 'Ocio' }), ex(9, '2026-11-04', { category: 'Salud', pending: true })];
+  const r = M.categoryTotals(list, '2026-11', ['Supermercado', 'Ocio', 'Otros']);
+  assert.eq(r.map(x => [x.category, x.spent, x.pct]), [['Supermercado', 300, 75], ['Ocio', 100, 25], ['Otros', 0, 0]]);
 });
 
-test('categoryRows marca las categorías que pasan de su presupuesto y topa el porcentaje en 100', () => {
-  const r = M.categoryRows([ex(130, '2026-11-02', { category: 'Ocio' })], '2026-11', { Ocio: 100 });
-  assert.eq([r[0].pct, r[0].over], [100, true]);
-});
-
-test('categoryRows incluye categorías con gasto aunque no tengan presupuesto', () => {
-  const r = M.categoryRows([ex(10, '2026-11-02', { category: 'Salud' })], '2026-11', {});
-  assert.eq([r[0].category, r[0].spent, r[0].budget, r[0].pct], ['Salud', 10, 0, 0]);
+test('categoryTotals incluye categorías con gasto aunque ya no estén en la lista, y no divide entre cero', () => {
+  const r = M.categoryTotals([ex(10, '2026-11-02', { category: 'Salud' })], '2026-11', ['Otros']);
+  assert.eq(r.map(x => [x.category, x.spent, x.pct]), [['Salud', 10, 100], ['Otros', 0, 0]]);
+  assert.eq(M.categoryTotals([], '2026-11', ['Otros'])[0].pct, 0);
 });
 
 test('toCSV escribe cabecera y una fila por gasto con ; y coma decimal', () => {
@@ -73,8 +69,7 @@ test('confirmPending quita la marca de pendiente y permite cambiar la categoría
   assert.eq(M.confirmPending(list, 'zzz', 'Ocio'), list);
 });
 
-test('DEFAULT_BUDGETS tiene presupuesto para las categorías de serie', () => {
-  ['Supermercado', 'Restaurantes', 'Transporte', 'Suscripciones', 'Ocio', 'Salud', 'Hogar', 'Otros'].forEach(c => assert.ok(M.DEFAULT_BUDGETS[c] > 0, c));
+test('DEFAULT_MONTH_BUDGET es positivo', () => {
   assert.ok(M.DEFAULT_MONTH_BUDGET > 0);
 });
 

@@ -24,11 +24,11 @@
   }
 
   function categoriesView(month) {
-    const rows = P.categoryRows(G.state.expenses, month, G.state.budgets);
+    const rows = P.categoryTotals(G.state.expenses, month, G.CATEGORIES);
     return `<div class="lst">${rows.map(r => `<div class="catrow">
       <span class="ico" style="--k:${G.colorOf(r.category)}">${esc(r.category[0])}</span>
-      <div class="tx"><b><span>${esc(r.category)}</span><span>${eur0(r.spent)}${r.budget ? ` <small>de ${eur0(r.budget)}</small>` : ''}</span></b>
-      <div class="p ${r.over ? 'over' : ''}" style="--k:${G.colorOf(r.category)}"><i style="width:${r.pct}%"></i></div></div></div>`).join('')}</div>`;
+      <div class="tx"><b><span>${esc(r.category)}</span><span>${eur(r.spent)} <small>${r.pct}%</small></span></b>
+      <div class="p" style="--k:${G.colorOf(r.category)}"><i style="width:${r.pct}%"></i></div></div></div>`).join('')}</div>`;
   }
 
   function evolutionView(month, stats, current, today) {
