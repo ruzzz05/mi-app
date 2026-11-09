@@ -280,6 +280,26 @@
     };
   }
 
+  const DEFAULT_CATEGORIES = ['Supermercado', 'Restaurantes', 'Transporte', 'Suscripciones', 'Ocio', 'Salud', 'Hogar', 'Otros'];
+
+  // La copia de la nube (texto JSON) -> datos válidos { expenses, subs, budget, categories }, o null si no es un objeto.
+  // Descarta gastos y suscripciones mal formados y garantiza que existe 'Otros'.
+  function parseCloudState(json) {
+    let v; try { v = JSON.parse(json); } catch (e) { return null; }
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+    const str = x => typeof x === 'string' && x !== '';
+    const okExpense = e => e && str(e.id) && str(e.date) && Number.isFinite(e.amount) && typeof e.category === 'string';
+    const okSub = s => s && str(s.id) && str(s.name) && Number.isFinite(s.amount);
+    let categories = Array.isArray(v.categories) ? v.categories.filter(str) : DEFAULT_CATEGORIES.slice();
+    if (!categories.includes('Otros')) categories = [...categories, 'Otros'];
+    return {
+      expenses: Array.isArray(v.expenses) ? v.expenses.filter(okExpense) : [],
+      subs: Array.isArray(v.subs) ? v.subs.filter(okSub) : [],
+      budget: v.budget > 0 ? v.budget : DEFAULT_MONTH_BUDGET,
+      categories
+    };
+  }
+
   // Un documento del buzón de Firestore (gastosInbox/{id}, escrito por el Atajo) -> gasto, o null si no vale.
   // El id sale del documento para que importarlo dos veces no lo duplique. Si la categoría se adivina por
   // el comercio entra ya apuntado; si no ('Otros') queda por revisar.
@@ -302,7 +322,7 @@
   }
 
   const api = {
-    DEFAULT_MONTH_BUDGET, euros, fromQuery, fromInboxDoc, addCategory, removeCategory, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryTotals, toCSV,
+    DEFAULT_MONTH_BUDGET, DEFAULT_CATEGORIES, parseCloudState, euros, fromQuery, fromInboxDoc, addCategory, removeCategory, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryTotals, toCSV,
     isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, projectMonth,
     addDays, addMonths, daysBetween, yearlyCost, monthlyCost, subscriptionTotals, nextCharge, upcomingCharges,
     merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId

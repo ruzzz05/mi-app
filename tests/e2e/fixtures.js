@@ -104,7 +104,7 @@ async function wipeRemote(page) {
     const uid = A.auth.currentUser.uid;
     const root = `https://firestore.googleapis.com/v1/projects/mi-app-490b5/databases/(default)/documents/users/${uid}`;
     const call = (method, url) => fetch(url, { method, headers: { Authorization: 'Bearer ' + token } });
-    for (const sub of ['fotos', 'gymlogs', 'gym']) {
+    for (const sub of ['fotos', 'gymlogs', 'gym', 'gastos']) {
       const res = await call('GET', `${root}/${sub}?pageSize=100`);
       if (!res.ok) continue;
       const { documents = [] } = await res.json();

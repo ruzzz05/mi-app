@@ -184,6 +184,26 @@ test.describe('Gastos', () => {
     await expect(tut).not.toHaveAttribute('open', '');
   });
 
+  test('los gastos se suben a la nube y se recuperan en un móvil vacío', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [{ id: 'cloud1', merchant: 'Cine', category: 'Ocio', amount: 7, date: ctx.today }], categories: ['Ocio', 'Mascotas', 'Otros'] }));
+    // Esperar a que se suba (a los pocos segundos de guardar)
+    await expect.poll(() => page.evaluate(async () => {
+      const A = window.MiAuth.auth, token = await A.currentUser.getIdToken();
+      const r = await fetch(`https://firestore.googleapis.com/v1/projects/mi-app-490b5/databases/(default)/documents/users/${A.currentUser.uid}/gastos/data`, { headers: { Authorization: 'Bearer ' + token } });
+      return r.status;
+    }), { timeout: 15000 }).toBe(200);
+    // Móvil vacío: se borra lo local (menos la sesión) y se vuelve a abrir
+    await page.evaluate(() => {
+      const keep = Object.keys(localStorage).filter(k => /firebase|auth|session|mi-app\.user/i.test(k));
+      const saved = Object.fromEntries(keep.map(k => [k, localStorage.getItem(k)]));
+      localStorage.clear();
+      Object.entries(saved).forEach(([k, v]) => localStorage.setItem(k, v));
+    });
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => window.Gastos.state.expenses.map(e => e.id).join())).toBe('cloud1');
+    expect(await page.evaluate(() => window.Gastos.state.categories.join())).toBe('Ocio,Mascotas,Otros');
+  });
+
   test('ajustes: exportar descarga el CSV', async ({ page }) => {
     await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Cine', category: 'Ocio', amount: 12.5, date: ctx.today }] }));
     await page.locator('#dock [data-screen="ajustes"]').click();

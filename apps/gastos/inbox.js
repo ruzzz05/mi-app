@@ -39,6 +39,7 @@ async function collect() {
   if (!M) return;
   const session = await Promise.race([M.ready.then(() => true), new Promise(r => setTimeout(() => r(false), 10000))]);
   if (!session) return;
+  await G.cloudReady;
   collect();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) collect(); });
 })();

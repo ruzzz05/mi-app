@@ -173,3 +173,24 @@ test('removeCategory pasa sus gastos a Otros y no deja quitar Otros', () => {
   assert.eq(r.expenses.map(e => e.category), ['Otros', 'Salud']);
   assert.eq(G.removeCategory(['Ocio', 'Otros'], ex, 'Otros'), null);
 });
+
+// ---- copia en la nube
+test('parseCloudState valida la copia de la nube y descarta lo que no sirve', () => {
+  const ok = G.parseCloudState(JSON.stringify({
+    expenses: [{ id: 'a', merchant: 'X', category: 'Ocio', amount: 5, date: '2026-01-01' }, { id: 'b', amount: 'mal' }, null],
+    subs: [{ id: 's', name: 'Netflix', amount: 12, period: 'month', anchor: '2026-01-15' }, { nombre: 'sin id' }],
+    budget: 900, categories: ['Ocio', 'Otros']
+  }));
+  assert.eq(ok.expenses.map(e => e.id), ['a']);
+  assert.eq(ok.subs.map(s => s.id), ['s']);
+  assert.eq(ok.budget, 900);
+  assert.eq(ok.categories, ['Ocio', 'Otros']);
+});
+
+test('parseCloudState pone valores seguros si faltan datos y devuelve null si no es un objeto', () => {
+  const s = G.parseCloudState('{"expenses":[]}');
+  assert.eq([s.subs, s.budget > 0, s.categories.includes('Otros')], [[], true, true]);
+  assert.eq(G.parseCloudState('no es json'), null);
+  assert.eq(G.parseCloudState('[1,2]'), null);
+  assert.eq(G.parseCloudState(JSON.stringify({ expenses: [], categories: ['Ocio'] })).categories.includes('Otros'), true);
+});

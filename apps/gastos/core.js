@@ -4,7 +4,6 @@
   const P = window.Planner;
   const KEY = 'gastos.v1';
   const NAMES = ['resumen', 'subs', 'auto', 'ajustes'];
-  const DEFAULT_CATEGORIES = ['Supermercado', 'Restaurantes', 'Transporte', 'Suscripciones', 'Ocio', 'Salud', 'Hogar', 'Otros'];
   const CAT_COLORS = { Supermercado: '#2FD08A', Restaurantes: '#FF8A5B', Transporte: '#5B9BFF', Suscripciones: '#B58CFF', Ocio: '#FFB547', Salud: '#5BD1E8', Hogar: '#F2C94C', Otros: '#7C8B99' };
 
   const EXTRA_COLORS = ['#FF6FA5', '#4DD4C1', '#9AD94A', '#FF9F6B', '#7E8CFF', '#E57BE5'];
@@ -20,7 +19,7 @@
     let s = null;
     try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { /* datos rotos: se empieza de cero */ }
     s = s || {};
-    const categories = Array.isArray(s.categories) && s.categories.includes('Otros') ? s.categories : DEFAULT_CATEGORIES.slice();
+    const categories = Array.isArray(s.categories) && s.categories.includes('Otros') ? s.categories : P.DEFAULT_CATEGORIES.slice();
     return {
       expenses: Array.isArray(s.expenses) ? s.expenses : [],
       subs: Array.isArray(s.subs) ? s.subs : [],
@@ -30,6 +29,7 @@
     };
   }
 
+  let cloudDone;
   const screens = {};
   let current = null;
   let toastTimer;
@@ -37,6 +37,8 @@
   const view = { y: now.getFullYear(), m: now.getMonth(), tab: 0 };   // mes que se enseña y pestaña del resumen
 
   const G = window.Gastos = {
+    // Se cumple cuando la nube ya se ha leído (o ha fallado): el buzón de pagos espera a esto para no pisar datos
+    cloudReady: new Promise(r => { cloudDone = r; }), cloudDone: () => cloudDone(),
     state: load(), $, esc, eur, eur0, todayISO, isoOf, CAT_COLORS, view,
     get CATEGORIES() { return G.state.categories; },
     // Las categorías propias toman un color de la rueda según su posición
@@ -44,11 +46,17 @@
     viewMonth: () => `${view.y}-${String(view.m + 1).padStart(2, '0')}`,
     isCurrentMonth: () => G.viewMonth() === todayISO().slice(0, 7),
 
-    save() {
-      G.state.updatedAt = Date.now();
+    // touch:false = guardar sin cambiar la fecha de modificación ni avisar a la nube (datos que vienen de ella)
+    save(opts) {
+      const touch = !(opts && opts.touch === false);
+      if (touch) G.state.updatedAt = Date.now();
       try { localStorage.setItem(KEY, JSON.stringify(G.state)); } catch (e) { G.toast('No se pudo guardar en el móvil'); }
       G.updateBadge();
+      if (touch && G.onSave) G.onSave();
     },
+
+    // Deja los datos del móvil como nuevos (otra cuenta ha entrado)
+    reset() { try { localStorage.removeItem(KEY); } catch (e) { /* sin almacenamiento */ } Object.assign(G.state, load()); G.render(); },
 
     // Puntito del rayo con los pagos que esperan a que los revises
     updateBadge() {
