@@ -5,28 +5,30 @@
   const P = window.Planner;
   const { esc, eur } = G;
 
-  // La clave de la API de Firebase no es secreta (va en la web pública); el secreto es TU_CLAVE, que solo está en el Atajo y en las reglas de Firestore.
-  const INBOX_URL = 'https://firestore.googleapis.com/v1/projects/mi-app-490b5/databases/(default)/documents/gastosInbox?key=AIzaSyCnFhLS9YxR1MnSDwwrKteWaW0CpMuqgdM';
+  // El texto y la dirección del Atajo son de cada cuenta (G.inboxInfo, lo rellena inbox.js): llevan la clave de su
+  // buzón, que es el secreto. La clave de la API de Firebase que va en la dirección no lo es (está en la web pública).
+  const WAIT = 'Cargando los datos de tu cuenta… (la primera vez hace falta conexión)';
 
   function render(el) {
     const list = P.pendingList(G.state.expenses);
+    const info = G.inboxInfo;
     el.innerHTML = `
       <div class="screen-title">Pagos con Apple Pay</div>
       <details class="stat tut">
         <summary>Cómo se configura (una sola vez)</summary>
         <ol class="steps">
           <li>En Atajos, ve a <i>Automatización</i> y pulsa +. Elige <i>Transacción</i>, marca tus tarjetas y activa <i>Ejecutar inmediatamente</i>.</li>
-          <li>Primera acción, <i>Texto</i>, con esto (sustituye TU_CLAVE y arrastra las variables <i>Importe</i> y <i>Comercio</i> a su sitio):</li>
+          <li>Primera acción, <i>Texto</i>, con esto (toca para copiarlo; después cambia [Importe] y [Comercio] por las variables <i>Importe</i> y <i>Comercio</i>):</li>
         </ol>
-        <code class="url">{"fields":{"k":{"stringValue":"TU_CLAVE"},"amount":{"stringValue":"[Importe]"},"merchant":{"stringValue":"[Comercio]"}}}</code>
+        <code id="tut-body" class="url" data-copy>${esc(info ? info.body : WAIT)}</code>
         <ol class="steps" start="3">
-          <li>Segunda acción, <i>Obtener contenido de URL</i>, método <i>POST</i>, esta dirección:</li>
+          <li>Segunda acción, <i>Obtener contenido de URL</i>, método <i>POST</i>, esta dirección (toca para copiarla):</li>
         </ol>
-        <code class="url">${INBOX_URL}</code>
+        <code id="tut-url" class="url" data-copy>${esc(info ? info.url : WAIT)}</code>
         <ol class="steps" start="4">
           <li>En esa acción: cabecera <i>Content-Type</i> = <i>application/json</i> y <i>Cuerpo de la solicitud</i> = <i>Archivo</i>, eligiendo el Texto anterior.</li>
         </ol>
-        <small>Cada pago llega solo a la nube y la app lo apunta al abrirla. Si el comercio no se reconoce, queda aquí por revisar.</small>
+        <small>Cada pago llega solo a la nube y la app lo apunta al abrirla. Si el comercio no se reconoce, queda aquí por revisar. El texto y la dirección son solo de tu cuenta: no los compartas.</small>
       </details>
       <div class="secx"><h3>Por revisar (${list.length})</h3><small>Confirma la categoría</small></div>
       <div class="lst">${list.map(p => `<div class="pend">
@@ -38,6 +40,11 @@
       </div>`).join('') || '<p class="empty-msg">Todo revisado. Los pagos nuevos aparecerán aquí.</p>'}</div>`;
 
     el.onclick = e => {
+      const copy = e.target.closest('[data-copy]');
+      if (copy && G.inboxInfo && navigator.clipboard) {
+        navigator.clipboard.writeText(copy.textContent).then(() => G.toast('Copiado'), () => G.toast('No se pudo copiar'));
+        return;
+      }
       const ok = e.target.closest('[data-confirm]');
       if (!ok) return;
       const sel = el.querySelector(`[data-cat="${ok.dataset.confirm}"]`);

@@ -77,6 +77,7 @@
     margin: 0 0 4px;
   }
   .tile p { margin: 0; font-size: 14px; color: var(--ink-2); }
+  .tile p.live { color: var(--ink); font-weight: 600; }
   .tile svg { flex: none; width: 22px; height: 22px; color: var(--ink-3); }
   .tile .dot {
     display: inline-block;
@@ -164,19 +165,31 @@
     <span id="app-version" class="app-version"></span>
   </main>
 
+<!-- Lógica de Gastos y Mi-Menu (sin pantalla) para el dato del día de cada tarjeta: shared/homecore.js -->
+<script src="apps/gastos/gastoscore.js"></script>
+<script src="apps/comidas/recipes.js"></script>
+<script src="apps/comidas/planner.js"></script>
+<script src="apps/comidas/schedule.js"></script>
+<script src="shared/homecore.js"></script>
 <script>
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// El dato del día de cada app (por su id), leído de lo que cada una guarda en este móvil
+const read = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const liveNotes = () => (window.HomeCore
+  ? HomeCore.notes({ gastos: read('gastos.v1'), comidas: read('comidas.v1'), gymActive: read('gimnasio.active'), now: new Date() })
+  : {});
 const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
 
 // El menú se construye a partir de apps.json: añade o quita entradas allí.
 fetch('apps.json')
   .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
   .then(apps => {
+    const notes = liveNotes();
     document.getElementById('menu').innerHTML = apps.map((app, i) => `
       <a class="tile rise" style="animation-delay:${i * 0.06}s" href="${esc(app.path)}">
         <div>
           <h2>${esc(app.name)}${app.accent ? `<span class="dot" style="background:${esc(app.accent)}"></span>` : ''}</h2>
-          <p>${esc(app.description || '')}</p>
+          ${notes[app.id] ? `<p class="live">${esc(notes[app.id])}</p>` : `<p>${esc(app.description || '')}</p>`}
         </div>
         ${CHEVRON}
       </a>`).join('');

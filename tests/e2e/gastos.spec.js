@@ -254,6 +254,94 @@ test.describe('Gastos', () => {
     expect(await page.evaluate(() => window.Gastos.state.categories.join())).toBe('Ocio,Mascotas,Otros');
   });
 
+  test('dos dispositivos: se juntan los gastos de los dos y lo borrado no vuelve', async ({ page }) => {
+    // Lee o escribe la copia de la nube como lo haría otro dispositivo
+    const cloud = (body) => page.evaluate(async body => {
+      const A = window.MiAuth.auth, token = await A.currentUser.getIdToken();
+      const url = `https://firestore.googleapis.com/v1/projects/mi-app-490b5/databases/(default)/documents/users/${A.currentUser.uid}/gastos/data`;
+      if (!body) { const r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } }); return r.ok ? JSON.parse((await r.json()).fields.json.stringValue).expenses.map(e => e.id).join() : ''; }
+      const fields = { updatedAt: { integerValue: String(Date.now() + 60000) }, json: { stringValue: JSON.stringify(body) } };
+      const r = await fetch(url, { method: 'PATCH', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) });
+      return String(r.status);
+    }, body || null);
+    const mk = (id, date) => ({ id, merchant: 'Cine', category: 'Ocio', amount: 7, date });
+    const today = await page.evaluate(() => window.Gastos.todayISO());
+
+    await seedFn(page, ctx => ({ expenses: [{ id: 'l1', merchant: 'Cine', category: 'Ocio', amount: 7, date: ctx.today }, { id: 'd1', merchant: 'Cine', category: 'Ocio', amount: 7, date: ctx.today }] }));
+    await expect.poll(() => cloud(), { timeout: 15000 }).toBe('l1,d1');
+    // En este móvil se borra d1 y se sube
+    await page.evaluate(() => { const G = window.Gastos; G.state.expenses = G.state.expenses.filter(e => e.id !== 'd1'); G.save(); });
+    await expect.poll(() => cloud(), { timeout: 15000 }).toBe('l1');
+    // Otro dispositivo, que no había visto ni l1 ni el borrado, sube su copia con un gasto nuevo
+    expect(await cloud({ expenses: [mk('r1', today), mk('d1', today)], subs: [], budget: 1000, categories: ['Ocio', 'Otros'] })).toBe('200');
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => window.Gastos.state.expenses.map(e => e.id).sort().join()), { timeout: 15000 }).toBe('l1,r1');
+    // Y la copia fusionada vuelve a la nube
+    await expect.poll(async () => (await cloud()).split(',').sort().join(), { timeout: 15000 }).toBe('l1,r1');
+  });
+
+  test('el buzón antiguo común no se lee desde una cuenta que no es la dueña', async ({ page }) => {
+    let reads = 0;
+    page.on('request', r => { if (r.url().includes('/documents/gastosInbox')) reads++; });
+    await page.reload();
+    await page.evaluate(() => window.Gastos.cloudReady);
+    await page.waitForTimeout(1500);
+    expect(reads).toBe(0);
+  });
+
+  // Buzón de la cuenta: users/{uid}/gastosInbox, con su clave en users/{uid}/gastos/inbox.
+  // Sin body cuenta los pagos que hay; con body deja uno ('$KEY' = la clave de la cuenta), con sesión o sin ella.
+  const inbox = (page, body, withAuth) => page.evaluate(async ({ body, withAuth }) => {
+    const A = window.MiAuth.auth, info = window.Gastos.inboxInfo;
+    const headers = { 'Content-Type': 'application/json' };
+    if (withAuth) headers.Authorization = 'Bearer ' + await A.currentUser.getIdToken();
+    if (!body) { const r = await fetch(info.url.split('?')[0], { headers }); return ((await r.json()).documents || []).length; }
+    const fields = Object.fromEntries(Object.entries(body).map(([k, v]) => [k, { stringValue: v === '$KEY' ? info.key : v }]));
+    return (await fetch(info.url, { method: 'POST', headers, body: JSON.stringify({ fields }) })).status;
+  }, { body: body || null, withAuth: !!withAuth });
+  const inboxReady = page => expect.poll(() => page.evaluate(() => !!(window.Gastos.inboxInfo && window.Gastos.inboxInfo.key)), { timeout: 15000 }).toBe(true);
+
+  test('automático: enseña el texto y la dirección del Atajo de tu cuenta', async ({ page }) => {
+    await inboxReady(page);
+    await page.locator('#dock [data-screen="auto"]').click();
+    await page.locator('details.tut summary').click();
+    const uid = await page.evaluate(() => window.MiAuth.auth.currentUser.uid);
+    await expect(page.locator('#tut-body')).toHaveText(/"k":\{"stringValue":"[0-9a-f]{24}"\}/);
+    await expect(page.locator('#tut-body')).not.toContainText('TU_CLAVE');
+    await expect(page.locator('#tut-url')).toContainText('/documents/users/' + uid + '/gastosInbox?key=');
+  });
+
+  test('un pago dejado en el buzón de la cuenta se recoge al abrir y se quita del buzón', async ({ page }) => {
+    await inboxReady(page);
+    expect(await inbox(page, { k: '$KEY', amount: '12,50', merchant: 'Zara' }, true)).toBe(200);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => window.Gastos.state.expenses.map(e => e.merchant + ' ' + e.amount).join()), { timeout: 15000 }).toBe('Zara 12.5');
+    await inboxReady(page);
+    await expect.poll(() => inbox(page, null, true), { timeout: 15000 }).toBe(0);
+  });
+
+  test('el Atajo, sin sesión, solo puede dejar pagos con la clave de la cuenta (reglas de Firestore)', async ({ page }) => {
+    await inboxReady(page);
+    expect(await inbox(page, { k: 'ffffffffffffffffffffffff', amount: '1', merchant: 'Falso' })).toBe(403);
+    expect(await inbox(page, { k: '$KEY', amount: '3,20', merchant: 'Bar' })).toBe(200);
+  });
+
+  test('editar un gasto deja corregir el importe y el nombre', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Cine', category: 'Ocio', amount: 9, date: ctx.today }] }));
+    await page.locator('.mv').first().click();
+    await page.locator('#ed-amount').fill('12,5');
+    await page.locator('#ed-merchant').fill('Cine Sur');
+    await page.locator('#ed-save').click();
+    expect(await page.evaluate(() => { const e = window.Gastos.state.expenses[0]; return [e.amount, e.merchant, e.category]; })).toEqual([12.5, 'Cine Sur', 'Ocio']);
+    await expect(page.locator('#ring-main')).toHaveText(/988/);
+    // Un importe no válido no guarda
+    await page.locator('.mv').first().click();
+    await page.locator('#ed-amount').fill('');
+    await page.locator('#ed-save').click();
+    await expect(page.locator('#sheet')).toHaveClass(/open/);
+    expect(await page.evaluate(() => window.Gastos.state.expenses[0].amount)).toBe(12.5);
+  });
+
   test('una suscripción que cobra hoy se apunta sola como gasto, una sola vez', async ({ page }) => {
     await seedFn(page, ctx => ({ subs: [{ id: 'nf', name: 'Netflix', amount: 12, period: 'month', anchor: ctx.today }] }));
     await page.evaluate(() => { window.Gastos.applySubs(); window.Gastos.applySubs(); });

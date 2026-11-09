@@ -51,12 +51,13 @@
       <p class="note">${current ? `A este ritmo cerrarás en <b>${eur0(stats.forecast)}</b>` : `Cerraste el mes en <b>${eur0(stats.spent)}</b>`}, ${stats.spent <= G.state.budget ? 'por debajo' : 'por encima'} de los <b>${eur0(G.state.budget)}</b> del presupuesto.</p></div>`;
   }
 
-  // Tocar un gasto deja cambiarle la fecha y la categoría (la categoría cambia en todos los gastos de ese comercio)
+  // Tocar un gasto deja corregir importe, nombre, fecha y categoría (la categoría cambia en todos los gastos de ese comercio)
   function openEditDate(id) {
     const ex = G.state.expenses.find(x => x.id === id);
     if (!ex) return;
     G.openSheet('Editar gasto', `
-      <p class="hint" style="font-size:14px;color:var(--ink)"><b>${esc(ex.merchant)}</b> · ${eur(ex.amount)}</p>
+      <input id="ed-amount" class="field amount-in" type="text" inputmode="decimal" autocomplete="off" aria-label="Importe" value="${esc(ex.amount.toFixed(2).replace('.', ','))}">
+      <input id="ed-merchant" class="field" type="text" autocomplete="off" aria-label="Dónde" value="${esc(ex.merchant)}">
       <label class="lbl">Fecha<input id="ed-date" class="field" type="date" max="${esc(G.todayISO())}" value="${esc(ex.date)}"></label>
       <div class="cats" id="ed-cats">${G.CATEGORIES.map(c => `<button type="button" data-cat="${esc(c)}" class="${c === ex.category ? 'on' : ''}"><i style="background:${G.colorOf(c)}"></i>${esc(c)}</button>`).join('')}</div>
       <div class="sheet-actions"><button id="ed-save" class="btn big" type="button">Guardar</button></div>`);
@@ -68,10 +69,12 @@
       document.querySelectorAll('#ed-cats [data-cat]').forEach(x => x.classList.toggle('on', x.dataset.cat === cat));
     };
     $('ed-save').onclick = () => {
-      let list = P.setExpenseDate(G.state.expenses, id, $('ed-date').value);
+      const amount = P.parseAmount($('ed-amount').value), merchant = $('ed-merchant').value.trim() || ex.merchant;
+      if (amount === null) { G.toast('Escribe un importe'); return; }
+      let list = P.editExpense(G.state.expenses, id, { amount, merchant, date: $('ed-date').value });
       if (!list) { G.toast('Fecha no válida'); return; }
       // Primero este gasto (por si no tiene comercio) y después los demás del mismo comercio
-      if (cat !== ex.category) list = P.setMerchantCategory(list.map(x => x.id === id ? { ...x, category: cat } : x), ex.merchant, cat);
+      if (cat !== ex.category) list = P.setMerchantCategory(list.map(x => x.id === id ? { ...x, category: cat } : x), merchant, cat);
       G.state.expenses = list; G.save(); G.closeSheet(); G.render(); G.toast('Gasto actualizado');
     };
   }

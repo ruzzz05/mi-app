@@ -25,14 +25,17 @@
       subs: Array.isArray(s.subs) ? s.subs : [],
       budget: s.budget > 0 ? s.budget : P.DEFAULT_MONTH_BUDGET,
       categories,
+      removed: Array.isArray(s.removed) ? s.removed : [],   // ids borrados, para fusionar con otro dispositivo
       updatedAt: s.updatedAt || 0
     };
   }
+  const idsOf = s => [...s.expenses, ...s.subs].map(x => x.id);
 
   let cloudDone;
   const screens = {};
   let current = null;
   let toastTimer;
+  let lastIds = [];   // ids de gastos y suscripciones en el último guardado
   const now = new Date();
   const view = { y: now.getFullYear(), m: now.getMonth(), tab: 0 };   // mes que se enseña y pestaña del resumen
 
@@ -49,14 +52,17 @@
     // touch:false = guardar sin cambiar la fecha de modificación ni avisar a la nube (datos que vienen de ella)
     save(opts) {
       const touch = !(opts && opts.touch === false);
-      if (touch) G.state.updatedAt = Date.now();
+      // Lo que había y ya no está se apunta como borrado (solo si el cambio es del usuario)
+      const ids = idsOf(G.state);
+      if (touch) { G.state.updatedAt = Date.now(); G.state.removed = P.trackRemoved(G.state.removed, lastIds, ids); }
+      lastIds = ids;
       try { localStorage.setItem(KEY, JSON.stringify(G.state)); } catch (e) { G.toast('No se pudo guardar en el móvil'); }
       G.updateBadge();
       if (touch && G.onSave) G.onSave();
     },
 
     // Deja los datos del móvil como nuevos (otra cuenta ha entrado)
-    reset() { try { localStorage.removeItem(KEY); } catch (e) { /* sin almacenamiento */ } Object.assign(G.state, load()); G.render(); },
+    reset() { try { localStorage.removeItem(KEY); } catch (e) { /* sin almacenamiento */ } Object.assign(G.state, load()); lastIds = idsOf(G.state); G.render(); },
 
     // Puntito del rayo con los pagos que esperan a que los revises
     updateBadge() {
@@ -189,4 +195,5 @@
       G.go('resumen');
     }
   };
+  lastIds = idsOf(G.state);
 })();

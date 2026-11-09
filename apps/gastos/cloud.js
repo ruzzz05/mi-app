@@ -1,6 +1,7 @@
 // Copia de Gastos en Firebase, ligada a la cuenta con la que has iniciado sesión (shared/auth.js).
 //   users/{uid}/gastos/data -> todos tus datos (gastos, suscripciones, presupuesto y categorías) en un solo documento
-// Al abrir la app se lee la nube (1 lectura) y gana la copia más reciente; cada cambio se sube a los pocos segundos.
+// Al abrir la app se lee la nube (1 lectura): si el móvil está vacío se recupera la copia; si las dos tienen datos
+// distintos se juntan (Planner.mergeStates). Cada cambio se sube a los pocos segundos.
 // Si falla (sin conexión, sin permisos…) la app sigue con los datos del móvil y lo reintenta luego.
 import { firebaseConfig } from '../../shared/firebase-config.js';
 
@@ -38,7 +39,7 @@ async function request(method, url, body) {
   return res.json();
 }
 
-const snapshot = () => ({ expenses: G.state.expenses, subs: G.state.subs, budget: G.state.budget, categories: G.state.categories });
+const snapshot = () => ({ expenses: G.state.expenses, subs: G.state.subs, budget: G.state.budget, categories: G.state.categories, removed: G.state.removed || [] });
 const isEmpty = () => !G.state.expenses.length && !G.state.subs.length && !G.state.updatedAt;
 
 async function push() {
@@ -72,7 +73,11 @@ async function connect() {
     const raw = S.fromFirestoreDoc(await request('GET', docUrl()));
     const remote = raw && P.parseCloudState(raw.json) ? raw : null;
     const what = S.decideDoc({ localEmpty: isEmpty(), localUpdatedAt: G.state.updatedAt, remote });
-    if (what === 'adopt') {
+    if (what !== 'none' && remote && !isEmpty()) {
+      // Las dos copias tienen datos y son distintas (otro dispositivo): se juntan y se sube el resultado
+      Object.assign(G.state, P.mergeStates(snapshot(), P.parseCloudState(remote.json), what === 'adopt'));
+      G.save(); G.render();
+    } else if (what === 'adopt') {
       const data = P.parseCloudState(remote.json);
       Object.assign(G.state, data, { updatedAt: remote.updatedAt });
       G.save({ touch: false }); G.render();

@@ -19,7 +19,7 @@ mi-app/
 ├── apps.json             Lista de apps: añadir o quitar aquí
 ├── manifest.webmanifest  Datos de instalación (nombre, iconos, colores)
 ├── sw.js                 Service worker: caché y modo sin conexión
-├── icons/                Iconos de la app (180, 192 y 512 px)
+├── icons/                Iconos de la app (180, 192 y 512 px) y su dibujo original (icon.svg)
 │
 ├── shared/               Lo que usan todas las apps
 │   ├── styles.css          Tema blanco y negro, botones, campos
@@ -119,6 +119,25 @@ service cloud.firestore {
           && request.auth.uid == uid
           && request.auth.token.firebase.sign_in_provider != 'anonymous';
       }
+      // Gastos: el buzón de pagos de cada cuenta. El Atajo de iOS escribe sin sesión, con la clave
+      // de esa cuenta (la crea la app en users/{uid}/gastos/inbox). Leer y borrar: solo su dueño (regla de arriba).
+      match /gastosInbox/{id} {
+        allow create: if request.resource.data.keys().hasOnly(['k','amount','merchant'])
+          && request.resource.data.k is string && request.resource.data.k.size() == 24
+          && request.resource.data.k == get(/databases/$(db)/documents/users/$(uid)/gastos/inbox).data.k
+          && request.resource.data.amount is string && request.resource.data.amount.size() < 20
+          && request.resource.data.merchant is string && request.resource.data.merchant.size() < 100;
+      }
+    }
+    // Gastos: el buzón antiguo común (el Atajo del dueño, con su clave fija). Solo lo lee y lo vacía el dueño.
+    match /gastosInbox/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['k','amount','merchant'])
+        && request.resource.data.k == 'TU_CLAVE'
+        && request.resource.data.amount is string && request.resource.data.amount.size() < 20
+        && request.resource.data.merchant is string && request.resource.data.merchant.size() < 100;
+      allow read, delete: if request.auth != null
+        && request.auth.uid == 'PEGA_AQUI_TU_UID'
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
     // Vinilos: la colección añadida desde la app la puede leer cualquier cuenta con sesión,
     // pero solo la puede escribir el dueño (pon aquí TU UID)
@@ -133,6 +152,10 @@ service cloud.firestore {
 ```
 
 Para comprobar que se sube: Firestore → Datos → `users` → tu UID (Authentication → Users) → deben aparecer `gym/config` y `gymlogs/AAAA-MM`. El catálogo de ejercicios (`apps/gimnasio/exercises.js`) viene de exercises-dataset (hasaneyldrm); cómo se generó está en `tools/build-catalog.md`. Las imágenes (© Gym visual, con crédito obligatorio y sin uso comercial sin licencia propia) se piden bajo demanda a jsDelivr.
+
+### Gastos: pagos de Apple Pay, un buzón por cuenta
+
+Cada cuenta tiene su buzón (`users/{uid}/gastosInbox`) y su clave (`users/{uid}/gastos/inbox`, la crea la app la primera vez). La pantalla **Pagos con Apple Pay** enseña a cada uno el texto y la dirección de su Atajo, ya con su clave; al tocarlos se copian. El Atajo escribe sin iniciar sesión: quien tenga la clave de una cuenta puede dejarle pagos, pero no leer nada. Solo funciona en iPhone (el disparador *Transacción* de Atajos). El buzón antiguo común (`gastosInbox`) sigue valiendo para la cuenta dueña (`apps/gastos/config.js`), así que su Atajo de siempre no hay que tocarlo.
 
 ### Vinilos: añadir discos desde la app
 
@@ -253,6 +276,30 @@ Abren las apps de verdad en Edge, con la cuenta de pruebas, y comprueban recetas
 3. **Sustituye las portadas de Vinilos** (`apps/vinilos/img/` y `musica.csv`): son de sus autores y no se pueden reutilizar.
 4. Mantén el crédito de Gym visual si conservas las imágenes del Gimnasio, y respeta sus términos.
 5. Respeta la licencia: uso no comercial, con el aviso de copyright incluido.
+
+## Pendiente
+
+Lo que queda por hacer tras la revisión de noviembre de 2026 (v0.8.24). Al terminar algo, se borra de aquí.
+
+**Mejoras propuestas, sin hacer**
+
+- **Gimnasio**
+  - Cronómetro de descanso al marcar una serie.
+  - Pantalla siempre encendida durante el entreno.
+  - Ver en cada serie el peso y las repeticiones de la última vez.
+- **Gastos**
+  - Presupuesto por categoría (hoy solo hay uno para todo el mes).
+  - Comparar el mes con el anterior.
+  - Buscar un gasto por nombre.
+  - Fusionar dos dispositivos también con la app abierta (hoy solo se juntan al abrirla).
+- **Ask**
+  - Modo Impostor y otros juegos de grupo, dentro de Ask.
+- **Portada**
+  - Dato del día también en Gimnasio sin entreno en curso (último entreno) y en Vinilos (un disco al azar).
+- **Toda la app**
+  - Aviso «hay una versión nueva» con botón para recargar, en vez de cerrar y abrir dos veces.
+  - Copia de seguridad: exportar e importar todos los datos de una cuenta en un archivo.
+- **Sin revisar a fondo**: Mi-Menu y Vinilos solo se miraron por encima.
 
 ## Licencia y créditos
 

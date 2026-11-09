@@ -18,6 +18,7 @@
     "description": "Preguntas para el grupo: Yo nunca y Ask.",
     "path": "apps/ask/index.html",
     "files": [
+      "apps/ask/askcore.js",
       "apps/ask/yonunca.csv",
       "apps/ask/ask.csv"
     ]
@@ -56,6 +57,7 @@
     "accent": "#12b76a",
     "files": [
       "apps/gastos/gastos.css",
+      "apps/gastos/config.js",
       "apps/gastos/gastoscore.js",
       "apps/gastos/core.js",
       "apps/gastos/main.js",

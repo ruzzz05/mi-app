@@ -211,11 +211,21 @@
     </section>
   </main>
 
+<script src="askcore.js"></script>
 <script>
+// Guardado en el móvil: los jugadores y lo que queda de cada baraja (para no repetir preguntas)
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
+};
+const PLAYERS_KEY = 'ask.players';
+const deckKey = mode => 'ask.deck.' + mode;
+const lastShown = {};   // última pregunta que salió en cada modo
+
 let currentMode = 'yonunca';
 let yonuncaQuestions = [];
 let askQuestions = [];
-let players = [];
+let players = AskCore.parsePlayers(store.get(PLAYERS_KEY));
 let intensity = 2;
 const ERR = "\u0000err:";
 
@@ -236,6 +246,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 intensitySelect.addEventListener('change', e => { intensity = parseInt(e.target.value); });
 
 function renderPlayers() {
+  store.set(PLAYERS_KEY, JSON.stringify(players));
   playersList.innerHTML = '';
   players.forEach((player, index) => {
     const tag = document.createElement('button');
@@ -314,8 +325,16 @@ function showRandomQuestion() {
 
   questionElement.classList.remove('rise');
 
+  // Sale de la baraja: no se repite ninguna hasta que han salido todas
+  const mode = currentMode;
+  let saved = null;
+  try { saved = JSON.parse(store.get(deckKey(mode))); } catch (e) { /* baraja rota: se baraja de nuevo */ }
+  const card = AskCore.draw(Array.isArray(saved) ? saved : [], questions.length, lastShown[mode], Math.random);
+  lastShown[mode] = card.index;
+  store.set(deckKey(mode), JSON.stringify(card.deck));
+
   setTimeout(() => {
-    let q = questions[Math.floor(Math.random() * questions.length)];
+    let q = questions[card.index];
 
     if (currentMode === 'ask' && q.includes('{name}')) {
       const nameCount = (q.match(/{name}/g) || []).length;

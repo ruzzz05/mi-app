@@ -381,8 +381,61 @@
       expenses: Array.isArray(v.expenses) ? v.expenses.filter(okExpense) : [],
       subs: Array.isArray(v.subs) ? v.subs.filter(okSub) : [],
       budget: v.budget > 0 ? v.budget : DEFAULT_MONTH_BUDGET,
-      categories
+      categories,
+      removed: Array.isArray(v.removed) ? v.removed.filter(str) : []
     };
+  }
+
+  // ---------- dos dispositivos con la misma cuenta
+  // Lista de ids borrados (gastos y suscripciones), para que al fusionar no vuelvan desde el otro
+  // dispositivo. Se apuntan los que había antes y ya no están, y se olvidan los que vuelven a estar.
+  const MAX_REMOVED = 1000;
+  function trackRemoved(removed, beforeIds, afterIds) {
+    const now = new Set(afterIds);
+    const out = (removed || []).filter(id => !now.has(id));
+    const seen = new Set(out);
+    beforeIds.forEach(id => { if (!now.has(id) && !seen.has(id)) { seen.add(id); out.push(id); } });
+    return out.slice(-MAX_REMOVED);
+  }
+
+  // Junta la copia del móvil y la de la nube: se quedan los gastos y suscripciones de las dos, menos
+  // lo borrado en cualquiera. Si algo está en las dos, y para el presupuesto y las categorías, gana la
+  // copia más nueva (remoteNewer = la de la nube).
+  function mergeStates(local, remote, remoteNewer) {
+    const [win, lose] = remoteNewer ? [remote, local] : [local, remote];
+    const removed = trackRemoved([...(lose.removed || []), ...(win.removed || [])], [], []);
+    const gone = new Set(removed);
+    const union = key => {
+      const mine = new Set(win[key].map(x => x.id));
+      return [...win[key], ...lose[key].filter(x => !mine.has(x.id))].filter(x => !gone.has(x.id));
+    };
+    const categories = win.categories;
+    const expenses = union('expenses')
+      .map(e => categories.includes(e.category) ? e : { ...e, category: 'Otros' })
+      .map((e, i) => [e, i]).sort((a, b) => b[0].date.localeCompare(a[0].date) || a[1] - b[1]).map(p => p[0]);
+    return { expenses, subs: union('subs'), budget: win.budget, categories, removed };
+  }
+
+  // ---------- buzón de pagos de Apple Pay
+  // Cada cuenta tiene su buzón (users/{uid}/gastosInbox) con su clave, que va en su Atajo. La cuenta
+  // dueña (config.js) recoge además el buzón antiguo común (gastosInbox), para que su Atajo de siempre siga valiendo.
+  const canCollectInbox = (ownerUid, uid) => !!ownerUid && ownerUid === uid;
+  const inboxSources = (ownerUid, uid) => [`users/${uid}/gastosInbox`, ...(canCollectInbox(ownerUid, uid) ? ['gastosInbox'] : [])];
+
+  const isInboxKey = k => typeof k === 'string' && /^[0-9a-f]{24}$/.test(k);
+  // 12 bytes al azar -> clave de 24 caracteres
+  const inboxKeyFrom = bytes => Array.from(bytes).slice(0, 12).map(b => (b & 255).toString(16).padStart(2, '0')).join('');
+
+  // Lo que se pega en el Atajo: el texto (con las variables Importe y Comercio) y la dirección a la que se envía.
+  const shortcutBody = key => `{"fields":{"k":{"stringValue":"${key}"},"amount":{"stringValue":"[Importe]"},"merchant":{"stringValue":"[Comercio]"}}}`;
+  const shortcutUrl = (projectId, uid, apiKey) => `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${uid}/gastosInbox?key=${apiKey}`;
+
+  // Corrige un gasto: importe, nombre y fecha. null si algo no es válido o el gasto no existe.
+  function editExpense(expenses, id, patch) {
+    const merchant = String(patch.merchant == null ? '' : patch.merchant).trim();
+    if (!(Number.isFinite(patch.amount) && patch.amount > 0) || !merchant) return null;
+    const dated = setExpenseDate(expenses, id, patch.date);
+    return dated && dated.map(e => e.id === id ? { ...e, amount: round2(patch.amount), merchant } : e);
   }
 
   // Un documento del buzón de Firestore (gastosInbox/{id}, escrito por el Atajo) -> gasto, o null si no vale.
@@ -411,7 +464,9 @@
     isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, projectMonth,
     addDays, addMonths, daysBetween, yearlyCost, monthlyCost, subscriptionTotals, nextCharge, upcomingCharges,
     merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId,
-    rememberedCategory, setMerchantCategory, applyRemembered
+    rememberedCategory, setMerchantCategory, applyRemembered,
+    trackRemoved, mergeStates, canCollectInbox, editExpense,
+    inboxSources, isInboxKey, inboxKeyFrom, shortcutBody, shortcutUrl
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Planner = Object.assign(root.Planner || {}, api);

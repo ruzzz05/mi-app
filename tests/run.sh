@@ -22,7 +22,12 @@ done
 for page in apps/*/tests/*.test.html shared/tests/*.test.html; do
   echo "== $page"
   URL="file:///$(cygpath -m "$PWD/$page")"
-  OUT=$("$BROWSER" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=4000 --dump-dom "$URL" 2>/dev/null)
+  # A veces el navegador sin interfaz se queda colgado y no devuelve nada: se corta a los 30 s y se reintenta
+  for try in 1 2 3; do
+    OUT=$(timeout -k 5 30 "$BROWSER" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=4000 --dump-dom "$URL" 2>/dev/null)
+    printf '%s' "$OUT" | grep -q '<pre id="out">' && break
+    echo "(el navegador no respondió, intento $try de 3)"
+  done
   BODY=$(printf '%s' "$OUT" | sed -n '/<pre id="out">/,/<\/pre>/p' | sed 's/.*<pre id="out">//; s/<\/pre>.*//' | sed 's/&gt;/>/g; s/&lt;/</g; s/&quot;/"/g; s/&amp;/\&/g')
   if [ -z "$BODY" ]; then echo "(sin resultados: la página no terminó)"; STATUS=1; continue; fi
   printf '%s\n' "$BODY"
