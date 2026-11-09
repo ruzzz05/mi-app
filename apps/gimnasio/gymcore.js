@@ -252,9 +252,26 @@
     return out;
   }
 
+  // ---------- Nombres propios de los ejercicios ----------
+  // names = { exId: 'Mi nombre' }. Se guarda solo lo que se ha cambiado; vacío o igual al original lo quita.
+  const cleanName = v => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, MAX_NAME) : '');
+  function cleanNames(raw) {
+    const out = {};
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      for (const [k, v] of Object.entries(raw)) { const n = cleanName(v); if (n) out[k] = n; }
+    }
+    return out;
+  }
+  function setExerciseName(names, exId, name, original) {
+    const out = Object.assign({}, cleanNames(names));
+    const n = cleanName(name);
+    if (!n || n === original) delete out[exId]; else out[exId] = n;
+    return out;
+  }
+
   const api = {
     epley1RM, sessionVolume, elapsedSec, startSession, finishSession, exerciseHistory,
-    weeklyMuscleSets, todaySummary, calendarCells, mergeMonthLogs, hasNewer, isValidSession, isValidRoutine, monthKey, exportRoutine, importRoutine, remapExerciseIds, newRecords,
+    weeklyMuscleSets, todaySummary, calendarCells, mergeMonthLogs, hasNewer, isValidSession, isValidRoutine, monthKey, exportRoutine, importRoutine, remapExerciseIds, newRecords, cleanNames, setExerciseName,
     dayOf, addDays, mondayOf, uid
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

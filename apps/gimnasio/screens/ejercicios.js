@@ -2,6 +2,7 @@
 // la ficha (imágenes, músculos, instrucciones), el buscador del catálogo y el bloque de series.
 (() => {
   const A = window.GymApp;
+  const G = window.Gym;
   const { h } = A;
   const CAT = A.catalog;
 
@@ -28,13 +29,31 @@
     const e = A.exercise(id);
     if (!e) { A.toast('Ejercicio no encontrado'); return; }
     const imgs = e.images.map(p => h('img', {
-      class: 'ex-img', src: imageUrl(p), alt: e.name, loading: 'lazy', crossorigin: 'anonymous',
-      onerror: ev => ev.target.replaceWith(h('div', { class: 'ex-img missing' }, e.name))
+      class: 'ex-img', src: imageUrl(p), alt: A.exerciseName(id), loading: 'lazy', crossorigin: 'anonymous',
+      onerror: ev => ev.target.replaceWith(h('div', { class: 'ex-img missing' }, A.exerciseName(id)))
     }));
-    A.openSheet(e.name, [
+    const custom = A.state.names[id];
+    const input = h('input', {
+      id: 'ex-name', class: 'field', type: 'text', maxlength: 60, value: A.exerciseName(id), autocomplete: 'off', 'aria-label': 'Nombre del ejercicio',
+      onkeydown: ev => { if (ev.key === 'Enter') saveName(); }
+    });
+    const changeName = value => {
+      A.state.names = G.setExerciseName(A.state.names, id, value, e.name);
+      A.save({ config: true });
+      A.toast(value.trim() && value.trim() !== e.name ? 'Nombre guardado' : 'Nombre original recuperado');
+      openExercise(id, back);
+    };
+    const saveName = () => changeName(input.value);
+    A.openSheet(A.exerciseName(id), [
       back ? h('button', { class: 'mini', type: 'button', onclick: back }, '← Volver') : null,
       h('div', { class: 'ex-imgs' }, imgs.length ? imgs : h('div', { class: 'ex-img missing' }, 'Sin imagen')),
-      h('p', { class: 'sub' }, e.nameEn),
+      h('div', { class: 'name-edit' },
+        h('label', { class: 'form-label', for: 'ex-name' }, 'Nombre'),
+        input,
+        h('div', { class: 'toolbar' },
+          h('button', { id: 'ex-name-save', class: 'btn small', type: 'button', onclick: saveName }, 'Guardar nombre'),
+          custom ? h('button', { id: 'ex-name-reset', class: 'btn small ghost', type: 'button', onclick: () => changeName('') }, 'Volver al original') : null)),
+      h('p', { class: 'sub' }, custom ? `Original: ${e.name} · ${e.nameEn}` : e.nameEn),
       h('div', { class: 'chips' },
         e.primaryMuscles.map(m => h('span', { class: 'chip on static' }, muscleLabel(m))),
         e.secondaryMuscles.map(m => h('span', { class: 'chip static' }, muscleLabel(m))),
@@ -55,14 +74,14 @@
     function renderList() {
       const q = norm(pickState.query.trim());
       const found = CAT.exercises.filter(e =>
-        (!q || norm(e.name).includes(q) || norm(e.nameEn).includes(q)) &&
+        (!q || norm(A.exerciseName(e.id)).includes(q) || norm(e.name).includes(q) || norm(e.nameEn).includes(q)) &&
         (!pickState.muscle || e.primaryMuscles.includes(pickState.muscle) || e.secondaryMuscles.includes(pickState.muscle)) &&
         (!pickState.equip || e.equipment === pickState.equip));
       list.replaceChildren(...found.slice(0, PAGE).map(e => h('div', { class: 'pick-row' },
         h('button', {
           class: 'card-row', type: 'button',
           onclick: () => { pickState.query = ''; A.closeSheet(); onPick(e.id); }
-        }, h('span', null, e.name, h('small', null, e.primaryMuscles.map(muscleLabel).join(', ')))),
+        }, h('span', null, A.exerciseName(e.id), h('small', null, e.primaryMuscles.map(muscleLabel).join(', ')))),
         h('button', { class: 'mini', type: 'button', onclick: () => openExercise(e.id, () => pickExercise(onPick)) }, 'Ver'))));
       info.textContent = found.length === 0 ? 'No hay ejercicios con esa búsqueda.'
         : found.length > PAGE ? `Mostrando ${PAGE} de ${found.length}. Afina la búsqueda para ver más.`

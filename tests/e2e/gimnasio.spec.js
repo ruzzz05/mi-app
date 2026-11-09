@@ -155,4 +155,34 @@ test.describe('Gimnasio', () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
     }
   });
+  test('Ejercicio: se le puede cambiar el nombre desde su ficha y se ve en la rutina; se puede restablecer', async ({ page }) => {
+    const ids = await seedRoutines(page);
+    const original = await page.evaluate(id => window.GymApp.exerciseName(id), ids[0]);
+    await page.evaluate(id => window.GymApp.openExercise(id), ids[0]);
+    await expect(page.locator('#sheet #ex-name')).toHaveValue(original);
+    await expect(page.locator('#sheet #ex-name-reset')).toHaveCount(0);           // aún no tiene nombre propio
+    await page.locator('#sheet #ex-name').fill('Mi press favorito');
+    await page.locator('#sheet #ex-name-save').click();
+    await expect(page.locator('#sheet #ex-name')).toHaveValue('Mi press favorito');
+    await expect(page.locator('#sheet #ex-name-reset')).toBeVisible();
+    await page.evaluate(() => window.GymApp.closeSheet());
+    await page.evaluate(() => window.GymApp.editRoutine('r1'));
+    await expect(page.locator('#screen-editar .ex-name').first()).toHaveText('Mi press favorito');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gimnasio.v1')).names)).toEqual({ [ids[0]]: 'Mi press favorito' });
+    await page.reload();
+    await page.evaluate(id => window.GymApp.openExercise(id), ids[0]);
+    await expect(page.locator('#sheet #ex-name')).toHaveValue('Mi press favorito');   // se recuerda
+    await page.locator('#sheet #ex-name-reset').click();
+    await expect(page.locator('#sheet #ex-name')).toHaveValue(original);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gimnasio.v1')).names)).toEqual({});
+  });
+
+  test('Ejercicio: el buscador también encuentra por el nombre propio', async ({ page }) => {
+    const ids = await seedRoutines(page);
+    await page.evaluate(id => { const A = window.GymApp; A.state.names = { [id]: 'Zzcurioso' }; A.save(); }, ids[0]);
+    await page.evaluate(() => window.GymApp.pickExercise(() => {}));
+    await page.locator('#sheet input[type="search"]').fill('zzcur');
+    await expect(page.locator('#sheet .pick-row')).toHaveCount(1);
+    await expect(page.locator('#sheet .pick-row')).toContainText('Zzcurioso');
+  });
 });

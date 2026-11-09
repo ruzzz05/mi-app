@@ -242,3 +242,26 @@ test('newRecords: ignora series sin hacer, entrenos borrados y la propia sesión
   assert.eq(G.newRecords(now, [old, del, now])[0].weight, 85);
   assert.eq(G.newRecords(now, []), []);
 });
+
+test('setExerciseName: guarda el nombre limpio, sin tocar el mapa original', () => {
+  const names = { a: 'Uno' };
+  const out = G.setExerciseName(names, 'b', '   Press   de   banca  ', 'Press de banca con barra');
+  assert.eq(out, { a: 'Uno', b: 'Press de banca' });
+  assert.eq(names, { a: 'Uno' });
+  assert.eq(G.setExerciseName({}, 'b', 'x'.repeat(100), 'Orig').b.length, 60);
+});
+
+test('setExerciseName: vacío o igual al original quita el nombre propio', () => {
+  const names = { a: 'Mío', b: 'Otro' };
+  assert.eq(G.setExerciseName(names, 'a', '   ', 'Orig'), { b: 'Otro' });
+  assert.eq(G.setExerciseName(names, 'a', 'Orig', 'Orig'), { b: 'Otro' });
+  assert.eq(G.setExerciseName(undefined, 'a', 'Mío', 'Orig'), { a: 'Mío' });
+});
+
+test('cleanNames: solo deja nombres de texto válidos y no vacíos', () => {
+  assert.eq(G.cleanNames({ a: ' Uno ', b: '', c: 5, d: null, e: 'x'.repeat(80) }).a, 'Uno');
+  assert.eq(Object.keys(G.cleanNames({ a: 'Uno', b: '', c: 5, d: null })), ['a']);
+  assert.eq(G.cleanNames({ e: 'x'.repeat(80) }).e.length, 60);
+  assert.eq(G.cleanNames(undefined), {});
+  assert.eq(G.cleanNames([1, 2]), {});
+});

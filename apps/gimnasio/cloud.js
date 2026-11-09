@@ -78,7 +78,7 @@ function parseJson(doc) {
 }
 const parseConfig = doc => {
   const v = parseJson(doc);
-  return v && Array.isArray(v.routines) ? { updatedAt: doc.updatedAt, routines: v.routines.filter(G.isValidRoutine) } : null;
+  return v && Array.isArray(v.routines) ? { updatedAt: doc.updatedAt, routines: v.routines.filter(G.isValidRoutine), names: G.cleanNames(v.names) } : null;
 };
 const parseMonth = doc => {
   const v = parseJson(doc);
@@ -108,7 +108,7 @@ function setLocalMonth(key, merged) {
 
 async function pushConfig() {
   if (!A.state.updatedAt) { A.state.updatedAt = Date.now(); A.save({ touch: false }); }
-  await putDoc('gym/config', { updatedAt: A.state.updatedAt, json: JSON.stringify({ routines: A.state.routines }) });
+  await putDoc('gym/config', { updatedAt: A.state.updatedAt, json: JSON.stringify({ routines: A.state.routines, names: A.state.names }) });
   pending.config = false;
   savePending();
 }
@@ -143,6 +143,7 @@ async function sync() {
   });
   if (action === 'adopt') {
     A.state.routines = config.routines;
+    A.state.names = config.names;
     A.state.updatedAt = config.updatedAt;
     A.save({ touch: false });
     adopted = true;

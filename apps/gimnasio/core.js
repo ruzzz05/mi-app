@@ -31,7 +31,7 @@
     return el;
   }
 
-  const emptyState = () => ({ version: 1, routines: [], logs: {}, updatedAt: 0 });
+  const emptyState = () => ({ version: 1, routines: [], names: {}, logs: {}, updatedAt: 0 });
 
   function normalize(raw) {
     const s = emptyState();
@@ -42,6 +42,7 @@
         if (/^\d{4}-\d{2}$/.test(k) && m && Array.isArray(m.sessions)) s.logs[k] = { updatedAt: m.updatedAt || 0, sessions: m.sessions.filter(G.isValidSession) };
       }
     }
+    s.names = G.cleanNames(raw.names);
     s.updatedAt = Number(raw.updatedAt) || 0;
     G.remapExerciseIds(s, CAT.aliases); // rutinas y entrenos guardados con los ids del catálogo anterior
     return s;
@@ -67,7 +68,8 @@
     mount(el, ...kids) { el.replaceChildren(...kids.flat(Infinity).filter(k => k != null && k !== false)); },
 
     exercise: id => byId.get(id) || null,
-    exerciseName: id => (byId.get(id) ? byId.get(id).name : 'Ejercicio desconocido'),
+    // Nombre que se enseña: el que le puso el usuario o, si no, el del catálogo
+    exerciseName: id => (byId.get(id) ? App.state.names[id] || byId.get(id).name : 'Ejercicio desconocido'),
 
     // save({ config: true, months: ['2026-11'] }) guarda y avisa a la nube de qué cambió.
     // Sin argumentos cuenta como cambio de rutinas; save({ touch: false }) solo guarda en el móvil.
