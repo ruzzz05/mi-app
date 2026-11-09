@@ -41,7 +41,10 @@
       const ok = e.target.closest('[data-confirm]');
       if (!ok) return;
       const sel = el.querySelector(`[data-cat="${ok.dataset.confirm}"]`);
-      G.state.expenses = P.confirmPending(G.state.expenses, ok.dataset.confirm, sel && sel.value);
+      const list = P.confirmPending(G.state.expenses, ok.dataset.confirm, sel && sel.value);
+      const done = list.find(x => x.id === ok.dataset.confirm);
+      // La categoría confirmada vale para todos los gastos de ese comercio
+      G.state.expenses = done ? P.setMerchantCategory(list, done.merchant, done.category) : list;
       G.save(); G.render(); G.toast('Pago apuntado');
     };
   }

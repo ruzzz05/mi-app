@@ -112,16 +112,27 @@
         <input id="ex-merchant" class="field" type="text" placeholder="¿Dónde? (Mercadona, Cine…)" autocomplete="off" aria-label="Dónde">
         <div class="cats" id="ex-cats">${G.CATEGORIES.map(c => `<button type="button" data-cat="${esc(c)}"><i style="background:${G.colorOf(c)}"></i>${esc(c)}</button>`).join('')}</div>
         <div class="sheet-actions"><button id="ex-save" class="btn big" type="button">Guardar gasto</button></div>`);
-      let cat = null;
+      let cat = null, picked = false;   // picked: la ha tocado el usuario y ya no se cambia sola
       const mark = () => document.querySelectorAll('#ex-cats [data-cat]').forEach(b => b.classList.toggle('on', b.dataset.cat === cat));
-      $('ex-cats').onclick = e => { const b = e.target.closest('[data-cat]'); if (b) { cat = b.dataset.cat; mark(); } };
-      $('ex-merchant').oninput = () => { if (!cat) { const g = P.guessCategory($('ex-merchant').value); if (g !== 'Otros') { cat = g; mark(); } } };
+      $('ex-cats').onclick = e => { const b = e.target.closest('[data-cat]'); if (b) { cat = b.dataset.cat; picked = true; mark(); } };
+      // Se marca la categoría que ya tiene el comercio y, si es nuevo, la que sugiere su nombre
+      $('ex-merchant').oninput = () => {
+        if (picked) return;
+        const name = $('ex-merchant').value, g = P.guessCategory(name);
+        cat = P.rememberedCategory(G.state.expenses, name, G.CATEGORIES) || (g !== 'Otros' && G.CATEGORIES.includes(g) ? g : null);
+        mark();
+      };
       $('ex-save').onclick = () => {
         const amount = P.parseAmount($('ex-amount').value);
         if (amount === null) { G.toast('Escribe un importe'); return; }
         const merchant = $('ex-merchant').value.trim() || 'Gasto';
         const match = P.matchSubscription({ merchant }, subs);
-        G.addExpense({ id: P.newId(), amount, merchant, date: todayISO(), category: cat || (match ? 'Suscripciones' : P.guessCategory(merchant)), source: 'manual' });
+        const guess = cat || (match ? 'Suscripciones' : P.guessCategory(merchant));
+        const category = G.CATEGORIES.includes(guess) ? guess : 'Otros';
+        // La categoría elegida (o la que ya tenía el comercio) vale para todos sus gastos, también los ya
+        // apuntados. Una que solo sugiere el nombre no cambia nada de lo anterior.
+        if (picked || P.rememberedCategory(G.state.expenses, merchant, G.CATEGORIES) === category) G.state.expenses = P.setMerchantCategory(G.state.expenses, merchant, category);
+        G.addExpense({ id: P.newId(), amount, merchant, date: todayISO(), category, source: 'manual' });
         // El gasto es de hoy: se vuelve al mes actual para verlo
         const t = new Date(); view.y = t.getFullYear(); view.m = t.getMonth(); view.tab = 0;
         G.closeSheet(); G.go('resumen'); G.toast('Gasto guardado');
@@ -129,11 +140,17 @@
       setTimeout(() => $('ex-amount').focus(), 50);
     },
 
-    // Un pago nuevo de fuera: si ya estaba apuntado su cobro automático de suscripción, se quita ese
+    // Un pago nuevo de fuera: si ya estaba apuntado su cobro automático de suscripción, se quita ese.
+    // Si el comercio ya tiene categoría, entra con ella sin pasar por revisión. Devuelve los pagos como quedaron.
     addIncoming(list) {
       let ex = G.state.expenses;
-      list.forEach(e => { ex = [G.normalize(e), ...P.withoutAutoCharge(ex, e, G.state.subs)]; });
+      const added = list.map(e => {
+        const n = G.normalize(P.applyRemembered(ex, e, G.CATEGORIES));
+        ex = [n, ...P.withoutAutoCharge(ex, e, G.state.subs)];
+        return n;
+      });
       G.state.expenses = ex;
+      return added;
     },
 
     // Apunta como gasto los cobros de suscripciones que ya han tocado (una vez al abrir y al volver a la app)
@@ -155,10 +172,10 @@
     takePaymentFromUrl() {
       const e = P.fromQuery(location.search, Date.now());
       if (!e) return;
-      G.addIncoming([e]);
+      const [added] = G.addIncoming([e]);
       G.save();
       try { history.replaceState(null, '', location.pathname); } catch (err) { /* sin historial */ }
-      G.toast('Pago por revisar: ' + e.merchant);
+      G.toast((added.pending ? 'Pago por revisar: ' : 'Pago apuntado: ') + e.merchant);
     },
 
     start() {

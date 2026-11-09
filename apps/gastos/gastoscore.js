@@ -240,6 +240,38 @@
     return hit || 'Otros';
   }
 
+  // ---------- categoría recordada por comercio
+  // Mismo comercio = mismo nombre sin mirar mayúsculas, acentos ni espacios de más. Los nombres que pone
+  // la app cuando no se escribe comercio no son un comercio ('').
+  const GENERIC = ['gasto', 'pago con tarjeta'];
+  const merchantId = name => { const id = fold(name == null ? '' : name).trim().replace(/\s+/g, ' '); return GENERIC.includes(id) ? '' : id; };
+
+  // La categoría que el usuario dio al comercio: la de su gasto más reciente ya confirmado (a igual fecha,
+  // el primero de la lista). No cuentan los cobros automáticos de suscripciones. null si no hay o ya no existe.
+  function rememberedCategory(expenses, merchant, categories) {
+    const id = merchantId(merchant);
+    if (!id) return null;
+    let last = null;
+    expenses.forEach(e => { if (!e.pending && e.source !== 'sub' && merchantId(e.merchant) === id && (!last || e.date > last.date)) last = e; });
+    return last && categories.includes(last.category) ? last.category : null;
+  }
+
+  // Pone la categoría a todos los gastos del comercio (de cualquier mes), menos a los cobros automáticos
+  // de suscripciones, que siguen siendo suscripciones.
+  function setMerchantCategory(expenses, merchant, category) {
+    const id = merchantId(merchant);
+    if (!id) return expenses;
+    return expenses.map(e => e.source !== 'sub' && merchantId(e.merchant) === id && e.category !== category ? { ...e, category } : e);
+  }
+
+  // Un pago que llega de un comercio ya conocido entra con su categoría y sin esperar revisión.
+  function applyRemembered(expenses, incoming, categories) {
+    const category = rememberedCategory(expenses, incoming.merchant, categories);
+    if (!category) return incoming;
+    const { pending, ...rest } = incoming;
+    return { ...rest, category };
+  }
+
   // ---------- resumen del mes ('AAAA-MM')
   function monthSummary(expenses, month) {
     const inMonth = expenses.filter(e => e.date.startsWith(month));
@@ -378,7 +410,8 @@
     DEFAULT_MONTH_BUDGET, DEFAULT_CATEGORIES, parseCloudState, dueCharges, withoutAutoCharge, setExpenseDate, euros, fromQuery, fromInboxDoc, addCategory, removeCategory, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryTotals, toCSV,
     isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, projectMonth,
     addDays, addMonths, daysBetween, yearlyCost, monthlyCost, subscriptionTotals, nextCharge, upcomingCharges,
-    merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId
+    merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId,
+    rememberedCategory, setMerchantCategory, applyRemembered
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Planner = Object.assign(root.Planner || {}, api);

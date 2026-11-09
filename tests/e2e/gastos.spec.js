@@ -263,6 +263,58 @@ test.describe('Gastos', () => {
     await expect(page.locator('.mv').first()).toContainText('suscripción');
   });
 
+  test('un comercio ya apuntado recuerda su categoría, y cambiarla reescribe sus gastos', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Bar Pepe', category: 'Ocio', amount: 5, date: ctx.prevMonth(3) }] }));
+    await page.locator('#dock-add').click();
+    await page.locator('#ex-amount').fill('7');
+    await page.locator('#ex-merchant').fill('bar pepe');
+    await expect(page.locator('#ex-cats .on')).toHaveText('Ocio');
+    await page.locator('#ex-cats [data-cat="Restaurantes"]').click();
+    await page.locator('#ex-save').click();
+    expect(await page.evaluate(() => window.Gastos.state.expenses.map(e => e.category))).toEqual(['Restaurantes', 'Restaurantes']);
+  });
+
+  test('una categoría solo sugerida por el nombre no reescribe los gastos anteriores', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Mercadona', category: 'Viajes', amount: 5, date: ctx.prevMonth(3) }] }));
+    await page.locator('#dock-add').click();
+    await page.locator('#ex-amount').fill('7');
+    await page.locator('#ex-merchant').fill('Mercadona');
+    await expect(page.locator('#ex-cats .on')).toHaveText('Supermercado');
+    await page.locator('#ex-save').click();
+    expect(await page.evaluate(() => window.Gastos.state.expenses.map(e => e.category))).toEqual(['Supermercado', 'Viajes']);
+  });
+
+  test('editar la categoría de un gasto cambia todos los de ese comercio', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [
+      { id: 'a', merchant: 'Bar Pepe', category: 'Otros', amount: 5, date: ctx.today },
+      { id: 'b', merchant: 'Bar Pepe', category: 'Otros', amount: 5, date: ctx.prevMonth(3) },
+      { id: 'c', merchant: 'Cine', category: 'Otros', amount: 9, date: ctx.prevMonth(4) }] }));
+    await page.locator('.mv').first().click();
+    await expect(page.locator('#ed-cats .on')).toHaveText('Otros');
+    await page.locator('#ed-cats [data-cat="Restaurantes"]').click();
+    await page.locator('#ed-save').click();
+    expect(await page.evaluate(() => window.Gastos.state.expenses.map(e => e.category))).toEqual(['Restaurantes', 'Restaurantes', 'Otros']);
+  });
+
+  test('un pago automático de un comercio conocido entra directo con su categoría', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Bar Pepe', category: 'Ocio', amount: 5, date: ctx.today }] }));
+    await page.goto('apps/gastos/index.html?pago=10&comercio=Bar%20Pepe');
+    await expect(page).not.toHaveURL(/pago=/);
+    await expect(page.locator('#dock [data-screen="auto"] .badge')).toBeHidden();
+    await expect(page.locator('#ring-main')).toHaveText(/985/);
+    expect(await page.evaluate(() => window.Gastos.state.expenses[0].category)).toBe('Ocio');
+  });
+
+  test('confirmar un pago por revisar pone su categoría a los demás gastos del comercio', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [
+      { id: 'p', merchant: 'Zara', category: 'Otros', amount: 20, date: ctx.today, pending: true },
+      { id: 'a', merchant: 'Zara', category: 'Otros', amount: 30, date: ctx.prevMonth(3) }] }));
+    await page.locator('#dock [data-screen="auto"]').click();
+    await page.locator('#screen-auto select').selectOption('Ocio');
+    await page.locator('#screen-auto [data-confirm]').click();
+    expect(await page.evaluate(() => window.Gastos.state.expenses.map(e => e.category))).toEqual(['Ocio', 'Ocio']);
+  });
+
   test('tocar un gasto deja cambiarle la fecha y no se pierde al borrar otro', async ({ page }) => {
     await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Cine', category: 'Ocio', amount: 9, date: ctx.today }] }));
     await page.locator('.mv').first().click();
