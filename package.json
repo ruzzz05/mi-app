@@ -1,7 +1,7 @@
 {
   "name": "mi-app",
   "version": "1.0.0",
-  "description": "Mini-apps instalables (PWA) en GitHub Pages: Mi-Menu, Gimnasio y Vinilos.",
+  "description": "Mini-apps instalables (PWA) en GitHub Pages: Mi-Menu, Gimnasio, Gastos, Ask y Vinilos.",
   "main": "sw.js",
   "directories": {
     "doc": "docs",
@@ -17,7 +17,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/ruzzz05/mi-app/issues"

@@ -4,6 +4,10 @@ Aplicación web instalable (PWA) con varias mini-apps. Se publica en GitHub Page
 
 **Web:** https://ruzzz05.github.io/mi-app/
 
+Apps: **Vinilos** (discos), **Ask** (juegos de grupo), **Mi-Menu** (comidas y compra), **Gastos** (gastos y suscripciones) y **Gimnasio** (rutinas y entrenos). Sin build ni framework: HTML, CSS y JavaScript puros, con Firebase para cuentas y datos.
+
+**Licencia:** código abierto para uso **no comercial** (MIT + cláusula no comercial, ver [LICENSE](LICENSE)). Puedes usarlo, copiarlo, modificarlo y compartirlo; **no puedes venderlo ni ganar dinero con él**. Imágenes, fuentes y librerías de terceros tienen sus propias condiciones: [THIRD-PARTY.md](THIRD-PARTY.md).
+
 ---
 
 ## Mapa del proyecto
@@ -24,6 +28,12 @@ mi-app/
 │   ├── authcore.js         Lógica de las cuentas (validar usuario, mensajes), sin red
 │   ├── firebase-config.js  Datos de conexión de Firebase (los usan todas las apps)
 │   ├── synccore.js         Reglas de sincronización con la nube comunes (24 h, dueño de los datos, formato Firestore)
+│   ├── syncbadge.js        Punto de estado de sincronización
+│   ├── anim.js / anim.css  Animaciones (lógica en animcore.js)
+│   ├── palette.js          Paleta de colores (lógica en palettecore.js)
+│   ├── confirm.js          Diálogo de confirmar al eliminar
+│   ├── fonts/              Fuentes (OFL, ver THIRD-PARTY.md)
+│   ├── version.js          Versión visible en la portada
 │   ├── tests/              Tests de authcore.js, synccore.js y de la puerta de entrada (gate.test.html)
 │   └── theme.js            Botón de modo claro/oscuro (lo inserta solo)
 │
@@ -54,6 +64,14 @@ mi-app/
 │   │   ├── schedule.js     Lógica: hora, inicio propuesto, vista de Hoy
 │   │   └── tests/          Tests de la lógica
 │   │
+│   ├── gastos/           Gastos y suscripciones: cuánto pagas y cuándo te cobran
+│   │   ├── index.html
+│   │   ├── gastos.css      Estilos
+│   │   ├── gastoscore.js   Lógica: fechas, costes, totales por mes y categoría (sin red)
+│   │   ├── cloud.js        Sincronización con Firestore
+│   │   ├── screens/        Pantallas: resumen, subs, auto, ajustes
+│   │   └── tests/          Tests de la lógica
+│   │
 │   └── gimnasio/         Gimnasio: rutinas, entrenos y estadísticas
 │       ├── index.html
 │       ├── gym.css         Tema blanco y naranja
@@ -65,11 +83,15 @@ mi-app/
 │       ├── health.js       Conexión con Google Health; google-config.js lleva el ID de cliente
 │       └── tests/          Tests de la lógica y del catálogo
 │
-└── tests/          Tests de planner.js
+├── tests/                Herramientas de test compartidas
+│   ├── harness.js          Mini arnés de tests
+│   ├── run.sh              Ejecuta todos los tests
+│   └── e2e/                Tests de pantalla (Playwright)
 │
-└── tests/                Herramientas de test compartidas
-    ├── harness.js          Mini arnés de tests
-    └── run.sh              Ejecuta todos los tests
+├── tools/                Notas de cómo se generó el catálogo de ejercicios
+├── docs/                 Diseños y planes de cada función
+├── LICENSE               Licencia (MIT + no comercial)
+└── THIRD-PARTY.md        Créditos y licencias de terceros
 ```
 
 ---
@@ -110,7 +132,7 @@ service cloud.firestore {
 }
 ```
 
-Para comprobar que se sube: Firestore → Datos → `users` → tu UID (Authentication → Users) → deben aparecer `gym/config` y `gymlogs/AAAA-MM`. El catálogo de ejercicios (`apps/gimnasio/exercises.js`) viene de exercises-dataset (hasaneyldrm); cómo se generó está en `tools/build-catalog.md`. Las imágenes se piden bajo demanda a jsDelivr.
+Para comprobar que se sube: Firestore → Datos → `users` → tu UID (Authentication → Users) → deben aparecer `gym/config` y `gymlogs/AAAA-MM`. El catálogo de ejercicios (`apps/gimnasio/exercises.js`) viene de exercises-dataset (hasaneyldrm); cómo se generó está en `tools/build-catalog.md`. Las imágenes (© Gym visual, con crédito obligatorio y sin uso comercial sin licencia propia) se piden bajo demanda a jsDelivr.
 
 ### Vinilos: añadir discos desde la app
 
@@ -221,3 +243,22 @@ Abren las apps de verdad en Edge, con la cuenta de pruebas, y comprueban recetas
 - **Cuenta de pruebas:** usuario y contraseña en `tests/e2e/credenciales.local.json`, que está en `.gitignore` (la web es pública: no se sube al repositorio). Si la cuenta no existe, los tests la crean. Al empezar cada test se borran sus datos en la nube (estado, fotos y gimnasio), solo los de esa cuenta.
 - **Sin conexión de verdad:** `setOffline()` corta la red y además hace que el servidor local rechace las peticiones, para que solo abra lo que el service worker tenga en caché.
 - **Punto de sincronización:** `shared/syncbadge.js` pinta el punto junto al botón de sincronizar (verde sincronizado, ámbar cambios sin subir, gris sin conexión, rojo error, azul sincronizando). Las reglas de qué estado toca están en `SyncCore.statusOf` (`shared/synccore.js`, con tests en `shared/tests`).
+
+---
+
+## Usar este proyecto como base (fork)
+
+1. Crea tu propio proyecto en Firebase (Authentication con correo/contraseña y Firestore) y pon sus datos en `shared/firebase-config.js`. Pega las reglas de Firestore de arriba, con tu UID.
+2. Cambia `ownerUid` (`apps/vinilos/vinilos-config.js`) y el `clientId` de Google (`apps/gimnasio/google-config.js`) por los tuyos, y la web `ruzzz05.github.io/mi-app` por la tuya.
+3. **Sustituye las portadas de Vinilos** (`apps/vinilos/img/` y `musica.csv`): son de sus autores y no se pueden reutilizar.
+4. Mantén el crédito de Gym visual si conservas las imágenes del Gimnasio, y respeta sus términos.
+5. Respeta la licencia: uso no comercial, con el aviso de copyright incluido.
+
+## Licencia y créditos
+
+- Código y documentación propios: [LICENSE](LICENSE) — MIT con cláusula no comercial. Copyright © 2026 ruzzz05.
+- Ejercicios: datos de [exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset) (MIT); imágenes © [Gym visual](https://gymvisual.com/).
+- Portadas de discos: © de sus titulares, solo ilustrativas.
+- Fuentes OFL, Papa Parse (MIT), Firebase SDK (Apache 2.0). Detalle completo en [THIRD-PARTY.md](THIRD-PARTY.md).
+
+Al ser una licencia con restricción de uso, técnicamente es «código disponible» y no «open source» según la definición de la OSI.
