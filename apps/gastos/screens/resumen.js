@@ -16,16 +16,25 @@
     <span class="ma">${eur(e.amount)}</span>
     <button class="x" type="button" data-del="${esc(e.id)}" aria-label="Borrar ${esc(e.merchant)}">×</button></div>`;
 
-  function movementsView(month, today) {
-    const inMonth = G.state.expenses.filter(e => e.date.startsWith(month));
+  // cat (opcional): solo los gastos de esa categoría
+  function movementsView(month, today, cat) {
+    const inMonth = G.state.expenses.filter(e => e.date.startsWith(month) && (!cat || e.category === cat));
     const groups = P.groupByDay(inMonth, today);
-    if (!groups.length) return '<p class="empty-msg">Sin gastos este mes. Toca + para apuntar uno.</p>';
+    if (!groups.length) return cat ? '<p class="empty-msg">Sin gastos de esta categoría este mes.</p>' : '<p class="empty-msg">Sin gastos este mes. Toca + para apuntar uno.</p>';
     return `<div class="lst">${groups.map(g => `<div class="dh"><span>${esc(g.label)}</span><span>${eur(g.total)}</span></div>${g.items.map(movRow).join('')}`).join('')}</div>`;
+  }
+
+  // Detalle de una categoría: los mismos movimientos por día, solo de ella, con botón para volver
+  function categoryDetail(month, today, cat) {
+    const total = P.categoryTotals(G.state.expenses, month, G.CATEGORIES).find(r => r.category === cat);
+    return `<div class="cat-head"><button id="cat-back" class="ar" type="button" aria-label="Volver a las categorías">${ARROW_L}</button>
+      <span class="ico" style="--k:${G.colorOf(cat)}">${esc(cat[0])}</span><b>${esc(cat)}</b><span id="cat-total" class="ma">${eur(total ? total.spent : 0)}</span></div>
+      ${movementsView(month, today, cat)}`;
   }
 
   function categoriesView(month) {
     const rows = P.categoryTotals(G.state.expenses, month, G.CATEGORIES);
-    return `<div class="lst">${rows.map(r => `<div class="catrow">
+    return `<div class="lst">${rows.map(r => `<div class="catrow" data-cat="${esc(r.category)}" role="button" tabindex="0">
       <span class="ico" style="--k:${G.colorOf(r.category)}">${esc(r.category[0])}</span>
       <div class="tx"><b><span>${esc(r.category)}</span><span>${eur(r.spent)} <small>${r.pct}%</small></span></b>
       <div class="p" style="--k:${G.colorOf(r.category)}"><i style="width:${r.pct}%"></i></div></div></div>`).join('')}</div>`;
@@ -81,7 +90,7 @@
     const today = G.todayISO(), month = G.viewMonth(), current = G.isCurrentMonth();
     const stats = P.monthStats(G.state.expenses, month, G.state.budget, today);
     const sub = stats.left < 0 ? 'te pasaste' : `${current ? stats.restDays : P.daysInMonth(month)} días`;
-    const content = [() => movementsView(month, today), () => categoriesView(month), () => evolutionView(month, stats, current, today)][G.view.tab]();
+    const content = [() => movementsView(month, today), () => (G.view.cat ? categoryDetail(month, today, G.view.cat) : categoriesView(month)), () => evolutionView(month, stats, current, today)][G.view.tab]();
 
     el.innerHTML = `
       <div class="tbar">
@@ -98,7 +107,7 @@
       <div class="sgm" role="tablist">${['Movimientos', 'Categorías', 'Evolución'].map((t, i) => `<button type="button" role="tab" data-view="${i}" aria-selected="${G.view.tab === i}" class="${G.view.tab === i ? 'on' : ''}">${t}</button>`).join('')}</div>
       ${content}`;
 
-    const goMonth = k => { G.view.m += k; if (G.view.m < 0) { G.view.m = 11; G.view.y--; } else if (G.view.m > 11) { G.view.m = 0; G.view.y++; } G.view.tab = 0; G.render(); };
+    const goMonth = k => { G.view.m += k; if (G.view.m < 0) { G.view.m = 11; G.view.y--; } else if (G.view.m > 11) { G.view.m = 0; G.view.y++; } G.view.tab = 0; G.view.cat = null; G.render(); };
     $('month-prev').onclick = () => goMonth(-1);
     $('month-next').onclick = () => { if (!G.isCurrentMonth()) goMonth(1); };
     $('month-label').onclick = openMonthPicker;
@@ -107,7 +116,10 @@
     if (hoy) hoy.onclick = () => { const t = new Date(); G.view.y = t.getFullYear(); G.view.m = t.getMonth(); G.view.tab = 0; G.render(); };
     el.onclick = e => {
       const v = e.target.closest('[data-view]'), d = e.target.closest('[data-del]'), ed = e.target.closest('[data-edit]');
-      if (v) { G.view.tab = Number(v.dataset.view); G.render(); }
+      const cat = e.target.closest('[data-cat]'), back = e.target.closest('#cat-back');
+      if (v) { G.view.tab = Number(v.dataset.view); G.view.cat = null; G.render(); }
+      else if (back) { G.view.cat = null; G.render(); }
+      else if (cat) { G.view.cat = cat.dataset.cat; G.render(); }
       else if (d) {
         const ex = G.state.expenses.find(x => x.id === d.dataset.del);
         if (!ex) return;

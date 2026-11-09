@@ -90,6 +90,24 @@ test.describe('Gastos', () => {
     await expect(page.locator('#screen-resumen .mv')).toHaveCount(1);
   });
 
+  test('tocar una categoría enseña sus gastos del mes por días, y se puede volver', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [
+      { id: 'a', merchant: 'Cine', category: 'Ocio', amount: 9, date: ctx.today },
+      { id: 'b', merchant: 'Bolera', category: 'Ocio', amount: 11, date: ctx.today },
+      { id: 'c', merchant: 'Mercadona', category: 'Supermercado', amount: 30, date: ctx.today },
+      { id: 'd', merchant: 'Cine viejo', category: 'Ocio', amount: 5, date: ctx.prevMonth(10) }] }));
+    await page.locator('#screen-resumen [data-view="1"]').click();
+    await page.locator('#screen-resumen [data-cat="Ocio"]').click();
+    await expect(page.locator('#screen-resumen .mv')).toHaveCount(2);
+    await expect(page.locator('#screen-resumen .lst')).toContainText('Cine');
+    await expect(page.locator('#screen-resumen .lst')).not.toContainText('Mercadona');
+    await expect(page.locator('#screen-resumen .lst')).not.toContainText('Cine viejo');
+    await expect(page.locator('#cat-total')).toContainText('20');
+    await page.locator('#cat-back').click();
+    await expect(page.locator('#screen-resumen [data-cat]')).not.toHaveCount(0);
+    await expect(page.locator('#screen-resumen .mv')).toHaveCount(0);
+  });
+
   test('borrar un gasto lo quita y devuelve el dinero al círculo', async ({ page }) => {
     await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Cine', category: 'Ocio', amount: 100, date: ctx.today }] }));
     await expect(page.locator('#ring-main')).toHaveText(/900/);

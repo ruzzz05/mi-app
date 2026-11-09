@@ -180,3 +180,8 @@ html { zoom: 1; }
 .tut[open] > summary::after { transform: rotate(180deg); }
 .tut[open] > summary { margin-bottom: 4px; }
 .mv[data-edit] { cursor: pointer; }
+/* Categorías: fila tocable y cabecera del detalle */
+.catrow[data-cat] { cursor: pointer; }
+.cat-head { display: flex; align-items: center; gap: 10px; padding: 6px 0 2px; }
+.cat-head b { flex: 1; min-width: 0; font-size: 16px; }
+.cat-head .ma { font-size: 16px; }
