@@ -461,6 +461,16 @@ input[type="search"].field { -webkit-appearance: none; appearance: none; }
 body, button, input, select, textarea { font-family: var(--sans); }
 /* Escala del diseño: los prototipos se hicieron para una pantalla de 280 px de ancho; este factor da
    en el móvil (390 px) las mismas proporciones de texto y de piezas. */
-html { zoom: 1.2; }
+html { zoom: 1; }
 /* Barra flotante pegada al borde de abajo (en iPhone ya queda un hueco por su cuenta) */
-.tabbar { margin-bottom: 4px; }
+.tabbar { margin-bottom: 4px; padding: 4px; border-radius: 22px; }
+.tabbar button { min-height: 44px; gap: 2px; font-size: 10px; border-radius: 18px; }
+.tabbar svg { width: 20px; height: 20px; }
+/* Cabecera más compacta */
+.topbar { padding: 6px 14px; }
+.topbar .title { font-size: 16px; }
+.back { min-height: 36px; font-size: 14px; }
+.back svg { width: 16px; height: 16px; }
+.theme-toggle, .sync-badge { height: 36px; }
+.theme-toggle { width: 36px; }
+.theme-toggle svg { width: 20px; height: 20px; }
