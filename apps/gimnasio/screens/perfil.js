@@ -34,7 +34,7 @@
     A.confirmSheet({
       title: `¿Borrar el entreno «${name}» del ${shortDay(G.dayOf(s.startedAt))}?`, text: 'Se quitará también de tus estadísticas.',
       okLabel: 'Borrar entreno', act: 'delete-ok', danger: true,
-      onOk: () => { A.deleteSession(s.id); A.toast('Entreno borrado'); A.render(); }
+      onOk: () => window.Anim.remove(document.querySelector(`[data-sid="${s.id}"]`), () => { A.deleteSession(s.id); A.toast('Entreno borrado'); A.render(); })
     });
   }
 
@@ -62,7 +62,7 @@
   function historial(sessions) {
     const list = sessions.filter(s => !s.deleted && doneCount(s) > 0).sort((x, y) => y.startedAt - x.startedAt);
     if (!list.length) return null;
-    const rows = list.slice(0, histShown).map(s => h('div', { class: 'hist-row' },
+    const rows = list.slice(0, histShown).map(s => h('div', { class: 'hist-row', 'data-sid': s.id },
       h('button', {
         class: 'hist-main', type: 'button',
         onclick: () => A.openSheet(longDay(G.dayOf(s.startedAt)), sessionCard(s))

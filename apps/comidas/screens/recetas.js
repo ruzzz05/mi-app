@@ -182,9 +182,9 @@
     if (dish) {
       $('dish-delete').onclick = async () => {
         if (!await window.AppConfirm({ title: `¿Eliminar «${dish.name}»?`, text: 'Si está en el menú, se sustituirá por otra.', okLabel: 'Eliminar' })) return;
-        C.dropDish(dish.id);
         keepQuery = true;
-        C.save(); C.closeSheet(); C.render();
+        C.closeSheet();
+        window.Anim.remove(document.querySelector(`.card-row[data-id="${dish.id}"]`), () => { C.dropDish(dish.id); C.save(); C.render(); });
       };
     }
   }

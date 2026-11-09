@@ -30,12 +30,23 @@
   }
 
   // ---------- 2. Pasos, distancia y calorías activas ----------
+  const skel = () => h('div', { class: 'sk-l', 'aria-hidden': 'true' });
+  let wasLoading = false; // la pantalla anterior era un esqueleto: al llegar los datos suben en cascada
+
   function tiles(st) {
     const s = st.summary;
-    return h('div', { class: 'tiles3' },
-      h('div', null, h('b', null, fmt(s && s.steps)), h('small', null, 'pasos')),
-      h('div', null, h('b', null, km(s && s.distance)), h('small', null, 'km')),
-      h('div', null, h('b', null, fmt(s && s.active)), h('small', null, 'kcal activas')));
+    if (st.kind === 'cargando' && !s) {
+      wasLoading = true;
+      return h('div', { class: 'tiles3', 'aria-busy': 'true' }, [0, 1, 2].map(() => h('div', { class: 'sk-tile' }, skel(), skel())));
+    }
+    const rise = wasLoading;
+    wasLoading = false;
+    const t = h('div', { class: 'tiles3' },
+      h('div', null, h('b', { 'data-count': s && s.steps }, fmt(s && s.steps)), h('small', null, 'pasos')),
+      h('div', null, h('b', { 'data-count': s && s.distance, 'data-decimals': 1 }, km(s && s.distance)), h('small', null, 'km')),
+      h('div', null, h('b', { 'data-count': s && s.active }, fmt(s && s.active)), h('small', null, 'kcal activas')));
+    if (rise) window.Anim.rise(t.children);
+    return t;
   }
 
   // ---------- 3. Entreno de hoy ----------
@@ -72,7 +83,7 @@
     if (!rec) {
       return h('div', { class: 'stack' }, permiso,
         h('div', { class: 'wc' }, h('h3', null, 'Recuperación'),
-          h('small', null, st.kind === 'cargando' ? 'Calculando…' : 'Todavía no hay datos de esta noche. Duerme con la pulsera puesta y abre la app por la mañana.')),
+          st.kind === 'cargando' ? [skel(), skel()] : h('small', null, 'Todavía no hay datos de esta noche. Duerme con la pulsera puesta y abre la app por la mañana.')),
         errors);
     }
 

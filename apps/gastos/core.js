@@ -70,7 +70,7 @@
     toast(msg, ms) {
       const t = $('toast');
       t.textContent = msg;
-      t.classList.add('show');
+      window.Anim.toast(t, ms);
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2200);
     },
@@ -86,12 +86,15 @@
     register(name, screen) { screens[name] = screen; },
 
     go(name) {
+      const prev = current;
       current = name;
       NAMES.forEach(n => $('screen-' + n).classList.toggle('hidden', n !== name));
       document.querySelectorAll('#dock [data-screen]').forEach(b => b.classList.toggle('active', b.dataset.screen === name));
       G.render();
       const sc = document.querySelector('.scroller');
       if (sc) sc.scrollTop = 0;
+      window.Anim.enter($('screen-' + name), window.Anim.direction(NAMES.indexOf(prev), NAMES.indexOf(name)));
+      if (G.tabInd) G.tabInd.place();
     },
 
     render() { if (current && screens[current]) screens[current].render($('screen-' + current)); G.updateBadge(); },
@@ -162,6 +165,7 @@
       $('sheet-close').onclick = G.closeSheet;
       $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) G.closeSheet(); });
       document.querySelectorAll('#dock [data-screen]').forEach(b => { b.onclick = () => G.go(b.dataset.screen); });
+      G.tabInd = window.Anim.indicator($('dock'), '[data-screen]');
       document.addEventListener('keydown', e => { if (e.key === 'Escape') G.closeSheet(); });
       $('dock-add').onclick = G.openExpenseSheet;
       G.takePaymentFromUrl();

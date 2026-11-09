@@ -1,0 +1,91 @@
+/* Animaciones compartidas (Mi-Menu, Gimnasio, Gastos). Se carga DESPUÉS del css de cada app para poder afinar sus hojas y avisos. */
+:root { --spring: cubic-bezier(.2,.9,.25,1.15); --out: cubic-bezier(.16,1,.3,1); }
+
+/* Pantalla que entra desde un lado */
+.anim-in-r { animation: anim-in-r .45s var(--out) both; }
+.anim-in-l { animation: anim-in-l .45s var(--out) both; }
+@keyframes anim-in-r { from { opacity: .2; transform: translateX(28px); } }
+@keyframes anim-in-l { from { opacity: .2; transform: translateX(-28px); } }
+
+/* Lista en cascada */
+.anim-rise { animation: anim-rise .55s var(--out) both; animation-delay: var(--d, 0ms); }
+@keyframes anim-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+
+/* Barras que crecen */
+.anim-enter .bar i, .anim-enter .rbar i, .anim-enter .p i { transform-origin: left; animation: anim-grow .9s var(--out) both; animation-delay: var(--d, 0ms); }
+.anim-enter .evo span { transform-origin: bottom; animation: anim-growy .8s var(--out) both; }
+@keyframes anim-grow { from { transform: scaleX(0); } }
+@keyframes anim-growy { from { transform: scaleY(0); } }
+
+/* Calendario que se enciende en ola */
+.anim-enter .cal-cell { animation: anim-light .5s var(--out) both; animation-delay: var(--d, 0ms); }
+@keyframes anim-light { from { transform: scale(.3); opacity: 0; } 60% { transform: scale(1.25); } }
+
+/* Borrado: sale deslizando y el hueco se cierra */
+.anim-out { transition: transform .33s ease-in, opacity .3s ease-in, height .38s var(--out), margin .38s var(--out), padding .38s var(--out), border-width .38s; transform: translateX(-60%); opacity: 0; }
+
+/* Hoja inferior: sube con un pequeño rebote y se va rápido */
+.sheet { transition: opacity .35s ease; }
+.sheet-panel { transform: translateY(100%); transition: transform .55s var(--spring); }
+.sheet.open .sheet-panel { transform: translateY(0); }
+.sheet:not(.open) .sheet-panel { transition: transform .25s ease-in; }
+
+/* Aviso: entra con rebote, barrita de tiempo y se va solo */
+.toast { overflow: hidden; opacity: 0; transform: translate(-50%, 160%); transition: transform .5s var(--spring), opacity .25s ease; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); }
+.toast.show::after { animation: anim-toast-t var(--toast-ms, 2200ms) linear forwards; }
+@keyframes anim-toast-t { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* Barra de pestañas: la pastilla de color se desliza hasta la pestaña activa */
+.has-ind > button { position: relative; z-index: 1; }
+.has-ind > button.active { background: transparent !important; }
+.anim-ind { position: absolute; z-index: 0; left: 0; top: 0; pointer-events: none; background: var(--tabonbg, var(--accent)); transition: transform .45s var(--spring), width .45s var(--spring), height .45s var(--spring), opacity .2s; }
+.has-ind > button.active svg { animation: anim-tabpop .45s var(--spring); }
+@keyframes anim-tabpop { 0% { transform: scale(.8); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+/* Nuevo récord: insignia con confeti */
+.anim-pr { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; background: rgba(0,0,0,.5); animation: anim-fade .25s ease both; cursor: pointer; }
+.anim-pr.bye { animation: anim-fade .3s ease reverse both; }
+.anim-pr-in { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 34px; border-radius: 26px; background: var(--surface); color: var(--ink); text-align: center; max-width: 86vw; animation: anim-rise .5s var(--spring) both; }
+.anim-pr-in b { font-family: var(--serif); font-size: 24px; font-weight: 800; }
+.anim-pr-in small { color: var(--ink-3); font-size: 14px; }
+.anim-badge { width: 70px; height: 70px; border-radius: 50%; display: grid; place-items: center; font-size: 34px; font-weight: 800; background: #FFC857; color: #1b1300; animation: anim-badge .75s var(--spring) both; }
+.anim-pc { position: absolute; left: 50%; top: 56px; width: 8px; height: 8px; border-radius: 2px; background: var(--c); opacity: 0; animation: anim-burst 1.1s .15s var(--out) forwards; }
+@keyframes anim-fade { from { opacity: 0; } }
+@keyframes anim-badge { 0% { transform: scale(0) rotate(-40deg); } 70% { transform: scale(1.15) rotate(6deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes anim-burst { 0% { opacity: 1; transform: translate(0,0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--r)); } }
+
+/* Serie nueva: entra deslizando con rebote */
+.anim-new { animation: anim-slide .5s var(--spring) both; }
+@keyframes anim-slide { from { opacity: 0; transform: translateX(-30px) scale(.96); } }
+
+/* Marcar como comprado: el nombre se tacha de izquierda a derecha y la fila se atenúa antes de pasar a Comprados */
+.buy .buy-name { position: relative; }
+.buy.marking { opacity: .55; transition: opacity .4s; }
+.buy.marking .buy-name { color: var(--ink-3); }
+.buy.marking .buy-name::after { content: ""; position: absolute; left: 0; top: 55%; height: 2px; width: 100%; background: var(--ink-3); transform-origin: left; animation: anim-strike .35s var(--out) .1s both; }
+.buy.marking input { animation: anim-tabpop .45s var(--spring); }
+@keyframes anim-strike { from { transform: scaleX(0); } }
+
+/* Esqueleto mientras carga: barras con un brillo que las recorre */
+.sk-l { display: block; height: 12px; border-radius: 8px; margin-top: 8px; background: linear-gradient(100deg, var(--surface-2) 30%, color-mix(in srgb, var(--ink) 14%, var(--surface-2)) 50%, var(--surface-2) 70%); background-size: 300% 100%; animation: anim-shim 1.4s linear infinite; }
+.sk-tile { display: flex; flex-direction: column; gap: 4px; }
+.sk-tile .sk-l:first-child { height: 24px; width: 70%; margin-top: 0; }
+.sk-tile .sk-l:last-child { width: 50%; }
+@keyframes anim-shim { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+/* Punto de sincronización: late con un aro mientras sincroniza, se asienta al terminar y parpadea si falla */
+.sync-badge { position: relative; }
+.sync-badge::before { transition: background .4s ease; }
+.sync-badge[data-state="syncing"]::before { animation: none; }
+.sync-badge[data-state="syncing"]::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 2px solid #3b82f6; animation: anim-ring 1.1s ease-out infinite; }
+.sync-badge[data-state="error"]::before { animation: anim-blink .8s ease 2; }
+.sync-badge[data-state="ok"]::before { animation: anim-settle .5s var(--spring); }
+@keyframes anim-ring { from { transform: scale(.6); opacity: .9; } to { transform: scale(2); opacity: 0; } }
+@keyframes anim-blink { 50% { transform: scale(1.6); } }
+@keyframes anim-settle { 0% { transform: scale(.6); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-ind, .sheet-panel, .toast { transition-duration: .001s !important; }
+}

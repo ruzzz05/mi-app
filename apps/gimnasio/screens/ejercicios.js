@@ -8,6 +8,13 @@
   const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const muscleLabel = m => CAT.muscles[m] || m;
   const MAX_VALUE = 1000;
+
+  // Series recién añadidas (entran animadas) y clave de cada ejercicio para animar el reordenado.
+  // Van en WeakMap: nada de esto se guarda en los datos.
+  const fresh = new WeakMap();
+  const keys = new WeakMap();
+  let keySeq = 0;
+  const keyOf = o => { if (!keys.has(o)) keys.set(o, 'k' + (++keySeq)); return keys.get(o); };
   const toNum = v => {
     const n = parseFloat(String(v).replace(',', '.'));
     return Number.isFinite(n) ? Math.min(Math.max(n, 0), MAX_VALUE) : 0;
@@ -84,7 +91,8 @@
   // onStructure(tipo): 'up' | 'down' | 'remove' | 'sets' (cambió la lista: repintar).
   function exerciseBlock({ ex, index, count, withDone, onChange, onStructure }) {
     const rows = ex.sets.map((s, i) => {
-      const row = h('div', { class: 'set-row' + (withDone ? ' with-done' : '') + (s.done ? ' done' : '') });
+      const row = h('div', { class: 'set-row' + (withDone ? ' with-done' : '') + (s.done ? ' done' : '') + (fresh.has(s) ? ' anim-new' : '') });
+      fresh.delete(s);
       const check = withDone ? h('button', {
         class: 'check' + (s.done ? ' on' : ''), type: 'button',
         'aria-label': 'Serie hecha', 'aria-pressed': String(!!s.done),
@@ -116,7 +124,7 @@
       return row;
     });
 
-    return h('div', { class: 'ex-block eblock' },
+    return h('div', { class: 'ex-block eblock', 'data-k': keyOf(ex) },
       h('div', { class: 'ex-head' },
         h('button', { class: 'ex-name', type: 'button', onclick: () => openExercise(ex.exId) }, A.exerciseName(ex.exId)),
         h('div', { class: 'ex-ctrl' },
@@ -128,7 +136,9 @@
         class: 'mini', type: 'button', 'data-act': 'add-set',
         onclick: () => {
           const last = ex.sets[ex.sets.length - 1];
-          ex.sets.push({ reps: last ? last.reps : 10, weight: last ? last.weight : 0, done: false });
+          const ns = { reps: last ? last.reps : 10, weight: last ? last.weight : 0, done: false };
+          ex.sets.push(ns);
+          fresh.set(ns, true);
           onStructure('sets');
         }
       }, '+ Serie'));
@@ -138,4 +148,5 @@
   A.pickExercise = pickExercise;
   A.exerciseBlock = exerciseBlock;
   A.toNum = toNum;
+  A.keyOf = keyOf;
 })();

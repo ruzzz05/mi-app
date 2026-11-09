@@ -51,7 +51,7 @@
     toast(msg, ms) {
       const t = $('toast');
       t.textContent = msg;
-      t.classList.add('show');
+      window.Anim.toast(t, ms);
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2200);
     },
@@ -73,12 +73,15 @@
     register(name, screen) { screens[name] = screen; },
 
     go(name) {
+      const prev = current;
       current = name;
       NAMES.forEach(n => $('screen-' + n).classList.toggle('hidden', n !== name));
       document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.screen === name));
       C.render();
       const sc = document.querySelector('.scroller');
       if (sc) sc.scrollTop = 0;
+      window.Anim.enter($('screen-' + name), window.Anim.direction(NAMES.indexOf(prev), NAMES.indexOf(name)));
+      if (C.tabInd) C.tabInd.place();
     },
 
     render() {
@@ -112,6 +115,7 @@
       $('sheet-close').onclick = C.closeSheet;
       $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) C.closeSheet(); });
       document.querySelectorAll('.tabbar button').forEach(b => { b.onclick = () => C.go(b.dataset.screen); });
+      C.tabInd = window.Anim.indicator(document.querySelector('.tabbar'), 'button');
       document.addEventListener('keydown', e => { if (e.key === 'Escape') C.closeSheet(); });
       // "Hoy" se refresca solo cuando cambia la hora
       setInterval(() => { if (current === 'hoy' && !C.sheetOpen()) C.render(); }, 60000);

@@ -17,7 +17,7 @@
   function remove(r) {
     A.confirmSheet({
       title: `¿Borrar la rutina «${r.name}»?`, text: 'Tus entrenos ya guardados no se tocan.', okLabel: 'Borrar', act: 'delete-ok', danger: true,
-      onOk: () => { A.state.routines = A.state.routines.filter(x => x.id !== r.id); A.save(); A.toast('Rutina borrada'); A.render(); }
+      onOk: () => window.Anim.remove(document.querySelector(`[data-rid="${r.id}"]`), () => { A.state.routines = A.state.routines.filter(x => x.id !== r.id); A.save(); A.toast('Rutina borrada'); A.render(); })
     });
   }
 
@@ -113,7 +113,7 @@
             h('button', { id: 'rt-new', class: 'ib p', type: 'button', 'aria-label': 'Nueva rutina', title: 'Nueva rutina', onclick: () => A.editRoutine(null) }, icon('<path d="M12 5v14M5 12h14"/>')))),
         A.hasActive() ? h('div', { class: 'banner' }, h('span', null, 'Tienes un entreno en curso'),
           h('button', { class: 'btn small', type: 'button', onclick: A.resumeWorkout }, 'Retomar')) : null,
-        routines.length ? routines.map(r => h('div', { class: 'rc' },
+        routines.length ? routines.map(r => h('div', { class: 'rc', 'data-rid': r.id },
           h('div', { class: 'card' },
             mainMuscle(r) ? h('span', { class: 'chip' }, mainMuscle(r)) : null,
             h('h3', null, r.name),

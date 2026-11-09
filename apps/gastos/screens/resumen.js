@@ -102,8 +102,8 @@
         ${current ? '' : '<button id="month-today" class="hoy" type="button">Hoy</button>'}
       </div>
       <div class="ringc"><div class="rw"><i class="ring ${stats.over ? 'over' : ''}" style="--p:${stats.pct}%"></i>
-        <div><b id="ring-main">${eur0(Math.abs(stats.left))}</b><small id="ring-sub">${sub}</small></div></div></div>
-      <div id="chips" class="chips2"><span>${eur0(stats.spent)} gastado</span><span>${eur0(stats.perDay)} al día</span><span>${current ? eur0(stats.forecast) + ' previsión' : 'Cerrado'}</span></div>
+        <div><b id="ring-main" data-count="${Math.abs(stats.left)}" data-group="1" data-suffix=" €">${eur0(Math.abs(stats.left))}</b><small id="ring-sub">${sub}</small></div></div></div>
+      <div id="chips" class="chips2"><span><span data-count="${stats.spent}" data-group="1" data-suffix=" €">${eur0(stats.spent)}</span> gastado</span><span><span data-count="${stats.perDay}" data-group="1" data-suffix=" €">${eur0(stats.perDay)}</span> al día</span><span>${current ? eur0(stats.forecast) + ' previsión' : 'Cerrado'}</span></div>
       <div class="sgm" role="tablist">${['Movimientos', 'Categorías', 'Evolución'].map((t, i) => `<button type="button" role="tab" data-view="${i}" aria-selected="${G.view.tab === i}" class="${G.view.tab === i ? 'on' : ''}">${t}</button>`).join('')}</div>
       ${content}`;
 
@@ -125,7 +125,7 @@
         if (!ex) return;
         window.AppConfirm({ title: `¿Borrar «${ex.merchant}»?`, text: `${eur(ex.amount)} del ${ex.date.split('-').reverse().join('/')}. No se puede deshacer.`, okLabel: 'Borrar' }).then(ok => {
           if (!ok) return;
-          G.state.expenses = G.state.expenses.filter(x => x.id !== ex.id); G.save(); G.render(); G.toast('Gasto borrado');
+          window.Anim.remove(d.closest('.mv'), () => { G.state.expenses = G.state.expenses.filter(x => x.id !== ex.id); G.save(); G.render(); G.toast('Gasto borrado'); });
         });
       }
       else if (ed) openEditDate(ed.dataset.edit);

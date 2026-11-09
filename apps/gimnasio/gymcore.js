@@ -230,9 +230,31 @@
     return n;
   }
 
+  // Ejercicios de una sesión cuyo mejor 1RM estimado supera al mejor de los entrenos anteriores (sin contar la propia sesión,
+  // los borrados ni las series sin hacer). La primera vez que se hace un ejercicio no cuenta como récord.
+  function newRecords(session, sessions) {
+    const best = new Map();
+    for (const prev of live(sessions)) {
+      if (prev.id === session.id) continue;
+      for (const ex of prev.exercises || []) {
+        for (const s of doneSets(ex)) best.set(ex.exId, Math.max(best.get(ex.exId) || 0, epley1RM(num(s.weight), num(s.reps))));
+      }
+    }
+    const out = [];
+    for (const ex of session.exercises || []) {
+      let top = null;
+      for (const s of doneSets(ex)) {
+        const e = epley1RM(num(s.weight), num(s.reps));
+        if (e > 0 && (!top || e > top.est1RM)) top = { exId: ex.exId, est1RM: e, weight: num(s.weight), reps: num(s.reps) };
+      }
+      if (top && (best.get(ex.exId) || 0) > 0 && top.est1RM > best.get(ex.exId) + 1e-9) out.push(top);
+    }
+    return out;
+  }
+
   const api = {
     epley1RM, sessionVolume, elapsedSec, startSession, finishSession, exerciseHistory,
-    weeklyMuscleSets, todaySummary, calendarCells, mergeMonthLogs, hasNewer, isValidSession, isValidRoutine, monthKey, exportRoutine, importRoutine, remapExerciseIds,
+    weeklyMuscleSets, todaySummary, calendarCells, mergeMonthLogs, hasNewer, isValidSession, isValidRoutine, monthKey, exportRoutine, importRoutine, remapExerciseIds, newRecords,
     dayOf, addDays, mondayOf, uid
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

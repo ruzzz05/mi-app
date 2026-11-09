@@ -103,6 +103,8 @@ test.describe('Mi-Menu', () => {
     await page.locator('#dish-delete').click();
     await expect(page.locator('#app-confirm')).toBeVisible(); // pregunta dentro de la app, no el cuadro del navegador
     await page.locator('#app-confirm [data-act="confirm-ok"]').click();
+    // el borrado espera a que la fila termine de salir (animación)
+    await expect.poll(() => page.evaluate(() => window.Comidas.state.dishes.length)).toBe(0);
     await expect.poll(() => pendingKey(page, PENDING_PHOTOS), { timeout: 20000 }).toBeNull();
     expect(await photoStatus(page, id)).toBe(404);
   });

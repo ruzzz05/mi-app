@@ -12,6 +12,7 @@
   let session = null;
   let timerId = null;
   let openIdx = 0;   // ejercicio abierto de la lista
+  let animOpen = false; // el último cambio fue tocar un ejercicio plegado: se despliega animado
 
   const read = () => {
     try {
@@ -69,10 +70,17 @@
     }
     const pending = session.exercises.reduce((n, ex) => n + ex.sets.filter(s => !s.done).length, 0);
     const save = () => {
-      A.recordSession(G.finishSession(session, Date.now()));
+      const finished = G.finishSession(session, Date.now());
+      const records = G.newRecords(finished, A.allSessions());
+      A.recordSession(finished);
       clear();
       A.toast('Entreno guardado');
       A.go('perfil');
+      if (records.length) {
+        const kg = n => String(Math.round(n * 10) / 10).replace('.', ',');
+        setTimeout(() => window.Anim.celebrate(records.length === 1 ? '¡Nuevo récord!' : `¡${records.length} récords nuevos!`,
+          records.map(r => `${A.exerciseName(r.exId)} · ${kg(r.weight)} kg × ${r.reps}`)), 450);
+      }
     };
     if (!pending) { save(); return; }
     A.confirmSheet({
@@ -86,6 +94,8 @@
     if (!session) session = read();
     if (!session) { A.go('rutinas'); return; }
     if (openIdx >= session.exercises.length) openIdx = Math.max(0, session.exercises.length - 1);
+    const reveal = animOpen;
+    animOpen = false;
 
     const timer = h('span', { class: 'timer' }, clock(G.elapsedSec(session.startedAt, Date.now())));
     stopTimer();
@@ -100,7 +110,7 @@
     const rows = session.exercises.map((ex, i) => {
       if (i !== openIdx) {
         const hechas = ex.sets.filter(s => s.done).length;
-        return h('button', { class: 'arow', type: 'button', onclick: () => { openIdx = i; A.render(); } },
+        return h('button', { class: 'arow', type: 'button', 'data-k': A.keyOf(ex), onclick: () => { openIdx = i; animOpen = true; A.render(); } },
           h('span', { class: 'st' + (isDone(ex) ? ' f' : '') }, isDone(ex) ? '✓' : i + 1),
           h('span', { class: 'tx' }, h('b', null, A.exerciseName(ex.exId)), h('small', null, `${hechas} de ${ex.sets.length} series`)),
           svg('<path d="M6 9l6 6 6-6"/>'));
@@ -117,8 +127,11 @@
             A.confirmSheet({ title: '¿Quitar este ejercicio?', text: done ? 'Tiene series hechas.' : 'Se quita de este entreno.', okLabel: 'Quitar', act: 'remove-ok', danger: true, onOk: drop });
             return;
           }
+          const flip = kind === 'up' || kind === 'down';
+          const snap = flip ? window.Anim.flipCapture(A.$('screen-usar'), '[data-k]', e => e.dataset.k) : null;
           persist();
           A.render();
+          if (snap) window.Anim.flipPlay(A.$('screen-usar'), '[data-k]', e => e.dataset.k, snap);
         }
       });
     });
@@ -140,6 +153,7 @@
             A.render();
           })
         }, svg('<path d="M12 5v14M5 12h14"/>'))));
+    if (reveal) window.Anim.reveal(el.querySelector('.eblock'));
   }
 
   A.register('usar', { render });

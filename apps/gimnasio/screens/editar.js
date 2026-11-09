@@ -56,7 +56,10 @@
           A.confirmSheet({ title: '¿Quitar este ejercicio?', text: 'Se quita de la rutina cuando la guardes.', okLabel: 'Quitar', act: 'remove-ok', danger: true, onOk: () => { draft.exercises.splice(i, 1); A.render(); } });
           return;
         }
+        const flip = kind === 'up' || kind === 'down';
+        const snap = flip ? window.Anim.flipCapture(A.$('screen-editar'), '[data-k]', e => e.dataset.k) : null;
         A.render();
+        if (snap) window.Anim.flipPlay(A.$('screen-editar'), '[data-k]', e => e.dataset.k, snap);
       }
     }));
 

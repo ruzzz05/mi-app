@@ -1,5 +1,5 @@
 // Cambia VERSION cuando modifiques archivos de la app para forzar la actualización.
-const VERSION = 'v78';
+const VERSION = 'v80';
 const CACHE = `mi-app-${VERSION}`;
 
 // Imágenes de ejercicios (Gimnasio): caché aparte que NO se borra al actualizar la app (la versión de
@@ -23,6 +23,9 @@ const SHELL = [
   'shared/authcore.js',
   'shared/synccore.js',
   'shared/confirm.js',
+  'shared/animcore.js',
+  'shared/anim.js',
+  'shared/anim.css',
   'shared/syncbadge.js',
   'shared/version.js',
   'shared/firebase-config.js',

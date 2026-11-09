@@ -127,7 +127,7 @@
     toast(msg, ms) {
       const t = $('toast');
       t.textContent = msg;
-      t.classList.add('show');
+      window.Anim.toast(t, ms);
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2200);
     },
@@ -164,6 +164,7 @@
     register(name, screen) { screens[name] = screen; },
 
     go(name, params) {
+      const prev = current;
       current = name;
       NAMES.forEach(n => $('screen-' + n).classList.toggle('hidden', n !== name));
       document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.screen === name));
@@ -172,6 +173,8 @@
       App.render();
       const sc = document.querySelector('.scroller');
       if (sc) sc.scrollTop = 0;
+      window.Anim.enter($('screen-' + name), window.Anim.direction(MAIN.indexOf(prev), MAIN.indexOf(name)));
+      if (App.tabInd) App.tabInd.place();
     },
 
     render() {
@@ -202,6 +205,7 @@
       $('sheet-close').onclick = App.closeSheet;
       $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) App.closeSheet(); });
       document.querySelectorAll('.tabbar button').forEach(b => { b.onclick = () => App.go(b.dataset.screen); });
+      App.tabInd = window.Anim.indicator($('tabbar'), 'button');
       document.addEventListener('keydown', e => { if (e.key === 'Escape') App.closeSheet(); });
       App.go(App.afterStart ? App.afterStart() : 'hoy');
     }

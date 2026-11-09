@@ -220,3 +220,25 @@ test('remapExerciseIds: cambia los ids antiguos en rutinas y entrenos y deja los
   assert.eq(G.remapExerciseIds(state, { old: 'new' }), 0); // repetirlo no cambia nada
   assert.eq(G.remapExerciseIds(state, undefined), 0);
 });
+
+test('newRecords: marca los ejercicios cuyo 1RM estimado supera al mejor anterior y calla el primer registro', () => {
+  const prev = [sess('p1', '2026-01-05', [ex('bench', set(5, 80)), ex('squat', set(5, 100))])];
+  const now = sess('n', '2026-01-12', [
+    ex('bench', set(5, 82.5), set(3, 70)),   // mejora
+    ex('squat', set(5, 100)),                // igual: no es récord
+    ex('row', set(10, 40))                   // nunca antes: no cuenta como récord
+  ]);
+  const r = G.newRecords(now, prev);
+  assert.eq(r.map(x => x.exId), ['bench']);
+  assert.eq([r[0].weight, r[0].reps], [82.5, 5]);
+  assert.ok(near(r[0].est1RM, G.epley1RM(82.5, 5)));
+});
+
+test('newRecords: ignora series sin hacer, entrenos borrados y la propia sesión', () => {
+  const old = sess('p', '2026-01-05', [ex('bench', set(5, 80))]);
+  const del = sess('d', '2026-01-06', [ex('bench', set(5, 200))], { deleted: true });
+  const now = sess('n', '2026-01-12', [ex('bench', set(5, 85), set(5, 300, false))]);
+  assert.eq(G.newRecords(now, [old, del, now]).map(x => x.exId), ['bench']);
+  assert.eq(G.newRecords(now, [old, del, now])[0].weight, 85);
+  assert.eq(G.newRecords(now, []), []);
+});

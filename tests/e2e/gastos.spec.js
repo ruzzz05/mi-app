@@ -142,7 +142,8 @@ test.describe('Gastos', () => {
     expect(await page.evaluate(() => window.Gastos.state.subs.length)).toBe(1);
     await page.locator('#sb-del').click();
     await page.locator('#app-confirm [data-act="confirm-ok"]').click();
-    expect(await page.evaluate(() => window.Gastos.state.subs.length)).toBe(0);
+    // el borrado espera a que la fila termine de salir (animación)
+    await expect.poll(() => page.evaluate(() => window.Gastos.state.subs.length)).toBe(0);
   });
 
   test('suscripciones: alta con fecha de fin, totales y terminadas', async ({ page }) => {

@@ -154,7 +154,14 @@
 
     el.onchange = e => {
       const cb = e.target.closest('[data-check]');
-      if (cb) setList(P.toggleChecked(C.state.list, cb.dataset.check));
+      if (!cb) return;
+      const row = cb.closest('.buy');
+      // Al marcar: primero se ve el tachado y luego pasa a Comprados. Al desmarcar, al instante.
+      if (cb.checked && row && !window.Anim.reduced()) {
+        row.classList.add('marking');
+        cb.disabled = true;
+        setTimeout(() => setList(P.toggleChecked(C.state.list, cb.dataset.check)), 650);
+      } else setList(P.toggleChecked(C.state.list, cb.dataset.check));
     };
     el.onclick = async e => {
       const rm = e.target.closest('[data-remove]');
