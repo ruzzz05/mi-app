@@ -32,7 +32,8 @@
         e.primaryMuscles.map(m => h('span', { class: 'chip on static' }, muscleLabel(m))),
         e.secondaryMuscles.map(m => h('span', { class: 'chip static' }, muscleLabel(m))),
         e.equipment ? h('span', { class: 'chip static' }, CAT.equipment[e.equipment] || e.equipment) : null),
-      e.instructions.length ? h('ol', { class: 'ex-steps' }, e.instructions.map(t => h('li', null, t))) : null
+      e.instructions.length ? h('ol', { class: 'ex-steps' }, e.instructions.map(t => h('li', null, t))) : null,
+      CAT.attribution ? h('p', { class: 'hint' }, 'Imágenes ' + CAT.attribution) : null
     ]);
   }
 

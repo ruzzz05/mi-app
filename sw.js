@@ -1,5 +1,5 @@
 // Cambia VERSION cuando modifiques archivos de la app para forzar la actualización.
-const VERSION = 'v77';
+const VERSION = 'v78';
 const CACHE = `mi-app-${VERSION}`;
 
 // Imágenes de ejercicios (Gimnasio): caché aparte que NO se borra al actualizar la app (la versión de
@@ -115,7 +115,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Imágenes de los ejercicios: caché primero (no cambian), con tope.
-  if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/free-exercise-db@')) {
+  if (url.hostname === 'cdn.jsdelivr.net' && (url.pathname.includes('/exercises-dataset@') || url.pathname.includes('/free-exercise-db@'))) {
     event.respondWith(cachedImage(request));
     return;
   }

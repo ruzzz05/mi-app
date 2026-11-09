@@ -217,9 +217,22 @@
     return { ok: true, routine: { id: uid(), name, updatedAt: Date.now(), exercises }, dropped };
   }
 
+  // Cambia in situ los id de ejercicio antiguos por los nuevos (aliases = { antiguo: nuevo }) en rutinas y entrenos.
+  // Devuelve cuántos cambió; si se repite no cambia nada.
+  function remapExerciseIds(state, aliases) {
+    if (!state || !aliases) return 0;
+    let n = 0;
+    const fix = list => (list || []).forEach(ex => {
+      if (ex && Object.prototype.hasOwnProperty.call(aliases, ex.exId)) { ex.exId = aliases[ex.exId]; n++; }
+    });
+    (state.routines || []).forEach(r => fix(r.exercises));
+    Object.values(state.logs || {}).forEach(m => (m.sessions || []).forEach(s => fix(s.exercises)));
+    return n;
+  }
+
   const api = {
     epley1RM, sessionVolume, elapsedSec, startSession, finishSession, exerciseHistory,
-    weeklyMuscleSets, todaySummary, calendarCells, mergeMonthLogs, hasNewer, isValidSession, isValidRoutine, monthKey, exportRoutine, importRoutine,
+    weeklyMuscleSets, todaySummary, calendarCells, mergeMonthLogs, hasNewer, isValidSession, isValidRoutine, monthKey, exportRoutine, importRoutine, remapExerciseIds,
     dayOf, addDays, mondayOf, uid
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

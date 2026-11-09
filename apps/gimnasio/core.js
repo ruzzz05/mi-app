@@ -43,6 +43,7 @@
       }
     }
     s.updatedAt = Number(raw.updatedAt) || 0;
+    G.remapExerciseIds(s, CAT.aliases); // rutinas y entrenos guardados con los ids del catálogo anterior
     return s;
   }
 

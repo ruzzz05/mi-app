@@ -194,3 +194,29 @@ test('todaySummary: resume los entrenos de un día e ignora borrados y entrenos 
   assert.eq(t.names, ['Ra', 'Rb']);
   assert.eq(G.todaySummary([], day), { count: 0, sets: 0, durationSec: 0, volume: 0, names: [] });
 });
+
+test('remapExerciseIds: cambia los ids antiguos en rutinas y entrenos y deja los demás', () => {
+  const state = {
+    routines: [{ id: 'r', name: 'R', exercises: [{ exId: 'old', sets: [] }, { exId: 'keep', sets: [] }] }],
+    logs: { '2026-01': { updatedAt: 1, sessions: [sess('s', '2026-01-05', [ex('old', set(5, 50)), ex('other', set(5, 50))])] } }
+  };
+  const n = G.remapExerciseIds(state, { old: 'new' });
+  assert.eq(n, 2);
+  assert.eq(state.routines[0].exercises.map(e => e.exId), ['new', 'keep']);
+  assert.eq(state.logs['2026-01'].sessions[0].exercises.map(e => e.exId), ['new', 'other']);
+  assert.eq(G.remapExerciseIds(state, { old: 'new' }), 0); // repetirlo no cambia nada
+  assert.eq(G.remapExerciseIds(state, undefined), 0);
+});
+
+test('remapExerciseIds: cambia los ids antiguos en rutinas y entrenos y deja los demás', () => {
+  const state = {
+    routines: [{ id: 'r', name: 'R', exercises: [{ exId: 'old', sets: [] }, { exId: 'keep', sets: [] }] }],
+    logs: { '2026-01': { updatedAt: 1, sessions: [sess('s', '2026-01-05', [ex('old', set(5, 50)), ex('other', set(5, 50))])] } }
+  };
+  const n = G.remapExerciseIds(state, { old: 'new' });
+  assert.eq(n, 2);
+  assert.eq(state.routines[0].exercises.map(e => e.exId), ['new', 'keep']);
+  assert.eq(state.logs['2026-01'].sessions[0].exercises.map(e => e.exId), ['new', 'other']);
+  assert.eq(G.remapExerciseIds(state, { old: 'new' }), 0); // repetirlo no cambia nada
+  assert.eq(G.remapExerciseIds(state, undefined), 0);
+});

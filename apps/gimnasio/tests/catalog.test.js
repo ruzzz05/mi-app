@@ -11,7 +11,7 @@ const ENGLISH = /\b(squats?|raises?|lunges?|deadlifts?|dumbbells?|barbells?|benc
 
 test('el catálogo tiene cientos de ejercicios y los datos de apoyo', () => {
   assert.ok(CAT && Array.isArray(CAT.exercises), 'falta GymCatalog.exercises');
-  assert.ok(CAT.exercises.length > 800, 'hay ' + CAT.exercises.length);
+  assert.ok(CAT.exercises.length >= 1300, 'hay ' + CAT.exercises.length);
   assert.ok(CAT.muscles && CAT.equipment && CAT.imageBase);
 });
 
@@ -49,7 +49,23 @@ test('todo ejercicio trabaja al menos un músculo principal', () => {
   assert.eq(CAT.exercises.filter(e => !e.primaryMuscles.length).map(e => e.id), []);
 });
 
-test('las imágenes son rutas relativas y la base fija una versión concreta (no main/master)', () => {
-  assert.ok(/@[0-9a-f]{40}\//.test(CAT.imageBase), CAT.imageBase);
-  assert.ok(CAT.exercises.every(e => e.images.every(i => !/^https?:|^\//.test(i))));
+test('las imágenes son rutas relativas a un repositorio fijado en un commit (no main/master)', () => {
+  assert.ok(/exercises-dataset@[0-9a-f]{40}\/images\/$/.test(CAT.imageBase), CAT.imageBase);
+  assert.ok(CAT.exercises.every(e => e.images.length === 1 && /^[\w-]+\.jpg$/.test(e.images[0])), 'cada ejercicio lleva su foto .jpg');
+});
+
+test('el catálogo lleva el crédito obligatorio de las imágenes', () => {
+  assert.ok(/Gym visual/.test(CAT.attribution) && /gymvisual\.com/.test(CAT.attribution), CAT.attribution);
+});
+
+test('todo ejercicio trae instrucciones paso a paso', () => {
+  assert.eq(CAT.exercises.filter(e => !e.instructions.length || e.instructions.some(s => !s)).map(e => e.id), []);
+});
+
+test('los ids antiguos (free-exercise-db) apuntan a ejercicios que existen', () => {
+  const ids = new Set(CAT.exercises.map(e => e.id));
+  const entries = Object.entries(CAT.aliases || {});
+  assert.ok(entries.length > 300, 'hay ' + entries.length + ' alias');
+  assert.eq(entries.filter(([, to]) => !ids.has(to)).map(([from]) => from), []);
+  assert.eq(entries.filter(([from]) => ids.has(from)).map(([from]) => from), []);
 });

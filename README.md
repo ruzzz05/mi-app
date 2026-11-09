@@ -110,7 +110,7 @@ service cloud.firestore {
 }
 ```
 
-Para comprobar que se sube: Firestore → Datos → `users` → tu UID (Authentication → Users) → deben aparecer `gym/config` y `gymlogs/AAAA-MM`. El catálogo de ejercicios (`apps/gimnasio/exercises.js`) viene de free-exercise-db; cómo se generó está en `tools/build-catalog.md`. Las imágenes se piden bajo demanda a jsDelivr.
+Para comprobar que se sube: Firestore → Datos → `users` → tu UID (Authentication → Users) → deben aparecer `gym/config` y `gymlogs/AAAA-MM`. El catálogo de ejercicios (`apps/gimnasio/exercises.js`) viene de exercises-dataset (hasaneyldrm); cómo se generó está en `tools/build-catalog.md`. Las imágenes se piden bajo demanda a jsDelivr.
 
 ### Vinilos: añadir discos desde la app
 
