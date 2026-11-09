@@ -52,7 +52,10 @@
       onStructure: kind => {
         if (kind === 'up' && i > 0) draft.exercises.splice(i - 1, 0, draft.exercises.splice(i, 1)[0]);
         else if (kind === 'down' && i < draft.exercises.length - 1) draft.exercises.splice(i + 1, 0, draft.exercises.splice(i, 1)[0]);
-        else if (kind === 'remove') draft.exercises.splice(i, 1);
+        else if (kind === 'remove') {
+          A.confirmSheet({ title: '¿Quitar este ejercicio?', text: 'Se quita de la rutina cuando la guardes.', okLabel: 'Quitar', act: 'remove-ok', danger: true, onOk: () => { draft.exercises.splice(i, 1); A.render(); } });
+          return;
+        }
         A.render();
       }
     }));

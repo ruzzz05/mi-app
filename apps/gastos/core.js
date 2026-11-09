@@ -126,6 +126,25 @@
       setTimeout(() => $('ex-amount').focus(), 50);
     },
 
+    // Un pago nuevo de fuera: si ya estaba apuntado su cobro automático de suscripción, se quita ese
+    addIncoming(list) {
+      let ex = G.state.expenses;
+      list.forEach(e => { ex = [G.normalize(e), ...P.withoutAutoCharge(ex, e, G.state.subs)]; });
+      G.state.expenses = ex;
+    },
+
+    // Apunta como gasto los cobros de suscripciones que ya han tocado (una vez al abrir y al volver a la app)
+    applySubs() {
+      const r = P.dueCharges(G.state.subs, G.state.expenses, todayISO());
+      if (!r.changed) return;
+      const known = new Set(G.state.expenses.map(e => e.id));
+      const fresh = r.expenses.filter(e => !known.has(e.id)).map(e => G.CATEGORIES.includes(e.category) ? e : { ...e, category: 'Otros' });
+      G.state.subs = r.subs;
+      G.state.expenses = [...fresh, ...G.state.expenses];
+      G.save(); G.render();
+      if (fresh.length) G.toast(fresh.length === 1 ? 'Suscripción apuntada: ' + fresh[0].merchant : fresh.length + ' suscripciones apuntadas');
+    },
+
     // Un pago de fuera con una categoría que ya no existe pasa a 'Otros' y queda por revisar
     normalize(e) { return G.CATEGORIES.includes(e.category) ? e : { ...e, category: 'Otros', pending: true }; },
 
@@ -133,7 +152,7 @@
     takePaymentFromUrl() {
       const e = P.fromQuery(location.search, Date.now());
       if (!e) return;
-      G.state.expenses = [G.normalize(e), ...G.state.expenses];
+      G.addIncoming([e]);
       G.save();
       try { history.replaceState(null, '', location.pathname); } catch (err) { /* sin historial */ }
       G.toast('Pago por revisar: ' + e.merchant);

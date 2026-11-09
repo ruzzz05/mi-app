@@ -94,7 +94,37 @@ test.describe('Gastos', () => {
     await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Cine', category: 'Ocio', amount: 100, date: ctx.today }] }));
     await expect(page.locator('#ring-main')).toHaveText(/900/);
     await page.locator('[data-del]').click();
+    // Pregunta dentro de la app; al cancelar no se borra nada
+    await expect(page.locator('#app-confirm')).toBeVisible();
+    await page.locator('#app-confirm [data-act="confirm-cancel"]').click();
+    await expect(page.locator('#app-confirm')).toHaveCount(0);
+    await expect(page.locator('#ring-main')).toHaveText(/900/);
+    await page.locator('[data-del]').click();
+    await page.locator('#app-confirm [data-act="confirm-ok"]').click();
     await expect(page.locator('#ring-main')).toHaveText(/1\.000/);
+  });
+
+  test('quitar una categoría o borrar una suscripción también pide confirmación', async ({ page }) => {
+    await seedFn(page, () => ({ subs: [{ id: 's1', name: 'Netflix', amount: 12, period: 'month', anchor: '2099-01-01' }] }));
+    await page.locator('#dock [data-screen="ajustes"]').click();
+    await page.locator('[data-set="cats"]').click();
+    await page.locator('#sheet-body [data-del="Ocio"]').click();
+    await expect(page.locator('#app-confirm')).toBeVisible();
+    await page.locator('#app-confirm [data-act="confirm-cancel"]').click();
+    expect(await page.evaluate(() => window.Gastos.state.categories.includes('Ocio'))).toBe(true);
+    await page.locator('#sheet-body [data-del="Ocio"]').click();
+    await page.locator('#app-confirm [data-act="confirm-ok"]').click();
+    expect(await page.evaluate(() => window.Gastos.state.categories.includes('Ocio'))).toBe(false);
+    await page.keyboard.press('Escape');
+    await page.locator('#dock [data-screen="subs"]').click();
+    await page.locator('.subrow').first().click();
+    await page.locator('#sb-del').click();
+    await expect(page.locator('#app-confirm')).toBeVisible();
+    await page.locator('#app-confirm [data-act="confirm-cancel"]').click();
+    expect(await page.evaluate(() => window.Gastos.state.subs.length)).toBe(1);
+    await page.locator('#sb-del').click();
+    await page.locator('#app-confirm [data-act="confirm-ok"]').click();
+    expect(await page.evaluate(() => window.Gastos.state.subs.length)).toBe(0);
   });
 
   test('suscripciones: alta con fecha de fin, totales y terminadas', async ({ page }) => {
@@ -170,6 +200,7 @@ test.describe('Gastos', () => {
     await page.locator('#cat-add').click();
     await expect(page.locator('#sheet-body [data-del="Mascotas"]')).toHaveCount(1);
     await page.locator('#sheet-body [data-del="Ocio"]').click();
+    await page.locator('#app-confirm [data-act="confirm-ok"]').click();
     await expect(page.locator('#sheet-body [data-del="Ocio"]')).toHaveCount(0);
     await expect(page.locator('#sheet-body [data-del="Otros"]')).toHaveCount(0);
   });
@@ -202,6 +233,23 @@ test.describe('Gastos', () => {
     await page.reload();
     await expect.poll(() => page.evaluate(() => window.Gastos.state.expenses.map(e => e.id).join())).toBe('cloud1');
     expect(await page.evaluate(() => window.Gastos.state.categories.join())).toBe('Ocio,Mascotas,Otros');
+  });
+
+  test('una suscripción que cobra hoy se apunta sola como gasto, una sola vez', async ({ page }) => {
+    await seedFn(page, ctx => ({ subs: [{ id: 'nf', name: 'Netflix', amount: 12, period: 'month', anchor: ctx.today }] }));
+    await page.evaluate(() => { window.Gastos.applySubs(); window.Gastos.applySubs(); });
+    const rows = await page.evaluate(() => window.Gastos.state.expenses.map(e => [e.merchant, e.amount, e.category, e.source]));
+    expect(rows).toEqual([['Netflix', 12, 'Suscripciones', 'sub']]);
+    await page.locator('#dock [data-screen="resumen"]').click();
+    await expect(page.locator('.mv').first()).toContainText('suscripción');
+  });
+
+  test('tocar un gasto deja cambiarle la fecha y no se pierde al borrar otro', async ({ page }) => {
+    await seedFn(page, ctx => ({ expenses: [{ id: 'a', merchant: 'Cine', category: 'Ocio', amount: 9, date: ctx.today }] }));
+    await page.locator('.mv').first().click();
+    await page.locator('#ed-date').fill('2026-01-05');
+    await page.locator('#ed-save').click();
+    expect(await page.evaluate(() => window.Gastos.state.expenses[0].date)).toBe('2026-01-05');
   });
 
   test('ajustes: exportar descarga el CSV', async ({ page }) => {

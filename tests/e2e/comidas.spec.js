@@ -99,9 +99,10 @@ test.describe('Mi-Menu', () => {
     const id = await page.evaluate(() => window.Comidas.state.dishes[0].photo);
     expect(await photoStatus(page, id)).toBe(200);
 
-    page.on('dialog', d => d.accept());
     await page.locator('.card-row').first().click();
     await page.locator('#dish-delete').click();
+    await expect(page.locator('#app-confirm')).toBeVisible(); // pregunta dentro de la app, no el cuadro del navegador
+    await page.locator('#app-confirm [data-act="confirm-ok"]').click();
     await expect.poll(() => pendingKey(page, PENDING_PHOTOS), { timeout: 20000 }).toBeNull();
     expect(await photoStatus(page, id)).toBe(404);
   });

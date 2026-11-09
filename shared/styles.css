@@ -235,3 +235,42 @@ select.field {
 }
 .sync-pop[hidden] { display: none; }
 .sync-pop span { color: var(--ink-2); }
+
+/* ---------- Pregunta de confirmación (la crea shared/confirm.js) ---------- */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0,0,0,.6);
+  animation: rise .18s ease-out both;
+}
+.confirm-box {
+  width: 100%;
+  max-width: 320px;
+  padding: 20px 18px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.45);
+}
+.confirm-box h2 { margin: 0 0 6px; font-size: 17px; font-weight: 800; letter-spacing: -.01em; line-height: 1.25; }
+.confirm-box p { margin: 0 0 4px; font-size: 14px; line-height: 1.4; color: var(--ink-2); }
+.confirm-actions { display: flex; gap: 8px; margin-top: 16px; }
+.confirm-btn {
+  appearance: none;
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+  color: var(--ink);
+  font: 700 15px var(--sans);
+  cursor: pointer;
+}
+.confirm-btn.confirm-ok { background: var(--btn-bg); color: var(--btn-ink); }
+.confirm-btn.confirm-ok.danger { background: #d64545; color: #fff; }
+.confirm-btn:active { transform: scale(.97); }

@@ -55,7 +55,10 @@
     };
     if (editing) {
       $('sb-pause').onclick = () => { save(G.state.subs.map(s => (s.id === sub.id ? { ...s, paused: !s.paused } : s))); G.closeSheet(); };
-      $('sb-del').onclick = () => { save(G.state.subs.filter(s => s.id !== sub.id)); G.closeSheet(); G.toast('Suscripción borrada'); };
+      $('sb-del').onclick = async () => {
+        if (!await window.AppConfirm({ title: `¿Borrar «${sub.name}»?`, text: 'Los gastos que ya se apuntaron de esta suscripción se quedan.', okLabel: 'Borrar' })) return;
+        save(G.state.subs.filter(s => s.id !== sub.id)); G.closeSheet(); G.toast('Suscripción borrada');
+      };
     }
   }
 

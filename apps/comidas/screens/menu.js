@@ -137,9 +137,9 @@
       const day = +b.dataset.day;
       if (a === 'slot') openSlot(w, day, b.dataset.slot);
       else if (a === 'new') {
-        if (confirm('¿Crear un menú nuevo? Se perderá el actual y los cambios de la lista de la compra.')) {
-          C.state.menu = null; C.state.list = P.emptyList(); C.save(); C.render();
-        }
+        window.AppConfirm({ title: '¿Crear un menú nuevo?', text: 'Se perderá el actual y los cambios de la lista de la compra.', okLabel: 'Crear menú nuevo' }).then(ok => {
+          if (ok) { C.state.menu = null; C.state.list = P.emptyList(); C.save(); C.render(); }
+        });
       }
     };
   }

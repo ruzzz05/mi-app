@@ -113,11 +113,8 @@
           else if (kind === 'down' && i < session.exercises.length - 1) { session.exercises.splice(i + 1, 0, session.exercises.splice(i, 1)[0]); openIdx = i + 1; }
           else if (kind === 'remove') {
             const drop = () => { session.exercises.splice(i, 1); openIdx = Math.min(openIdx, session.exercises.length - 1); persist(); A.render(); };
-            if (ex.sets.some(s => s.done)) {
-              A.confirmSheet({ title: '¿Quitar este ejercicio?', text: 'Tiene series hechas.', okLabel: 'Quitar', act: 'remove-ok', danger: true, onOk: drop });
-              return;
-            }
-            drop();
+            const done = ex.sets.some(s => s.done);
+            A.confirmSheet({ title: '¿Quitar este ejercicio?', text: done ? 'Tiene series hechas.' : 'Se quita de este entreno.', okLabel: 'Quitar', act: 'remove-ok', danger: true, onOk: drop });
             return;
           }
           persist();

@@ -10,9 +10,9 @@
   const ARROW_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
   const monthKey = (y, m) => `${y}-${String(m + 1).padStart(2, '0')}`;
 
-  const movRow = e => `<div class="mv">
+  const movRow = e => `<div class="mv" data-edit="${esc(e.id)}">
     <span class="ico" style="--k:${G.colorOf(e.category)}">${esc((e.merchant || '?')[0].toUpperCase())}</span>
-    <div class="tx"><b>${esc(e.merchant)}</b><small>${esc(e.category)}${e.source === 'auto' ? ' · automático' : ''}</small></div>
+    <div class="tx"><b>${esc(e.merchant)}</b><small>${esc(e.category)}${e.source === 'auto' ? ' · automático' : e.source === 'sub' ? ' · suscripción' : ''}</small></div>
     <span class="ma">${eur(e.amount)}</span>
     <button class="x" type="button" data-del="${esc(e.id)}" aria-label="Borrar ${esc(e.merchant)}">×</button></div>`;
 
@@ -40,6 +40,21 @@
     return `<div class="evo-wrap"><div class="evo">${series.map((v, i) => `<span class="${i === todayIdx ? 't' : v > limit ? 'over' : ''}" style="height:${Math.max(2, Math.round(v / max * 100))}%"></span>`).join('')}<i class="line" style="bottom:${Math.round(limit / max * 100)}%"></i></div>
       <div class="evn"><span>1</span><span>Límite diario ${eur0(limit)}</span><span>${series.length}</span></div>
       <p class="note">${current ? `A este ritmo cerrarás en <b>${eur0(stats.forecast)}</b>` : `Cerraste el mes en <b>${eur0(stats.spent)}</b>`}, ${stats.spent <= G.state.budget ? 'por debajo' : 'por encima'} de los <b>${eur0(G.state.budget)}</b> del presupuesto.</p></div>`;
+  }
+
+  // Tocar un gasto deja cambiarle la fecha
+  function openEditDate(id) {
+    const ex = G.state.expenses.find(x => x.id === id);
+    if (!ex) return;
+    G.openSheet('Cambiar fecha', `
+      <p class="hint" style="font-size:14px;color:var(--ink)"><b>${esc(ex.merchant)}</b> · ${eur(ex.amount)}</p>
+      <label class="lbl">Fecha<input id="ed-date" class="field" type="date" max="${esc(G.todayISO())}" value="${esc(ex.date)}"></label>
+      <div class="sheet-actions"><button id="ed-save" class="btn big" type="button">Guardar</button></div>`);
+    $('ed-save').onclick = () => {
+      const list = P.setExpenseDate(G.state.expenses, id, $('ed-date').value);
+      if (!list) { G.toast('Fecha no válida'); return; }
+      G.state.expenses = list; G.save(); G.closeSheet(); G.render(); G.toast('Fecha cambiada');
+    };
   }
 
   function openMonthPicker() {
@@ -91,9 +106,17 @@
     const hoy = $('month-today');
     if (hoy) hoy.onclick = () => { const t = new Date(); G.view.y = t.getFullYear(); G.view.m = t.getMonth(); G.view.tab = 0; G.render(); };
     el.onclick = e => {
-      const v = e.target.closest('[data-view]'), d = e.target.closest('[data-del]');
+      const v = e.target.closest('[data-view]'), d = e.target.closest('[data-del]'), ed = e.target.closest('[data-edit]');
       if (v) { G.view.tab = Number(v.dataset.view); G.render(); }
-      else if (d) { G.state.expenses = G.state.expenses.filter(x => x.id !== d.dataset.del); G.save(); G.render(); G.toast('Gasto borrado'); }
+      else if (d) {
+        const ex = G.state.expenses.find(x => x.id === d.dataset.del);
+        if (!ex) return;
+        window.AppConfirm({ title: `¿Borrar «${ex.merchant}»?`, text: `${eur(ex.amount)} del ${ex.date.split('-').reverse().join('/')}. No se puede deshacer.`, okLabel: 'Borrar' }).then(ok => {
+          if (!ok) return;
+          G.state.expenses = G.state.expenses.filter(x => x.id !== ex.id); G.save(); G.render(); G.toast('Gasto borrado');
+        });
+      }
+      else if (ed) openEditDate(ed.dataset.edit);
     };
   }
 

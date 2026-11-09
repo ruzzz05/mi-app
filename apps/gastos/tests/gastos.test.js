@@ -194,3 +194,70 @@ test('parseCloudState pone valores seguros si faltan datos y devuelve null si no
   assert.eq(G.parseCloudState('[1,2]'), null);
   assert.eq(G.parseCloudState(JSON.stringify({ expenses: [], categories: ['Ocio'] })).categories.includes('Otros'), true);
 });
+
+// ---- suscripciones que se apuntan solas como gasto
+test('dueCharges: la primera vez solo apunta el cobro de hoy, no el historial', () => {
+  const s = sub({ id: 'n', anchor: '2026-01-15', period: 'month' });
+  const r = G.dueCharges([s], [], '2026-11-15');
+  assert.eq(r.expenses.map(e => [e.id, e.date, e.amount, e.merchant, e.category, e.source]), [['sub-n-2026-11-15', '2026-11-15', 12, 'Netflix', 'Suscripciones', 'sub']]);
+  assert.eq(r.subs[0].lastGen, '2026-11-15');
+  assert.eq(r.changed, true);
+});
+
+test('dueCharges: no apunta nada si hoy no toca y recuerda desde cuándo mirar', () => {
+  const r = G.dueCharges([sub({ anchor: '2026-01-15' })], [], '2026-11-20');
+  assert.eq(r.expenses, []);
+  assert.eq(r.subs[0].lastGen, '2026-11-20');
+});
+
+test('dueCharges: recupera los cobros que pasaron mientras no abrías la app, sin repetir los ya apuntados', () => {
+  const s = sub({ id: 'n', anchor: '2026-01-15', lastGen: '2026-09-20' });
+  const r = G.dueCharges([s], [], '2026-11-20');
+  assert.eq(r.expenses.map(e => e.date), ['2026-10-15', '2026-11-15']);
+  const again = G.dueCharges(r.subs, r.expenses, '2026-11-20');
+  assert.eq(again.expenses, []);
+  assert.eq(again.changed, false);
+});
+
+test('dueCharges: un cobro borrado a mano no vuelve a aparecer', () => {
+  const s = sub({ id: 'n', anchor: '2026-01-15', lastGen: '2026-11-15' });
+  assert.eq(G.dueCharges([s], [], '2026-11-25').expenses, []);
+});
+
+test('dueCharges: respeta la fecha de fin, la pausa y que no hay cobros antes del primer día', () => {
+  assert.eq(G.dueCharges([sub({ anchor: '2026-01-15', until: '2026-10-31', lastGen: '2026-09-20' })], [], '2026-11-20').expenses.map(e => e.date), ['2026-10-15']);
+  const paused = G.dueCharges([sub({ anchor: '2026-01-15', paused: true, lastGen: '2026-09-20' })], [], '2026-11-20');
+  assert.eq([paused.expenses, paused.subs[0].lastGen], [[], '2026-11-20']);
+  assert.eq(G.dueCharges([sub({ anchor: '2026-12-01' })], [], '2026-11-20').expenses, []);
+});
+
+test('dueCharges: cobros semanales y anuales', () => {
+  assert.eq(G.dueCharges([sub({ period: 'week', anchor: '2026-11-01', lastGen: '2026-11-07' })], [], '2026-11-22').expenses.map(e => e.date), ['2026-11-08', '2026-11-15', '2026-11-22']);
+  assert.eq(G.dueCharges([sub({ period: 'year', anchor: '2025-11-20' })], [], '2026-11-20').expenses.map(e => e.date), ['2026-11-20']);
+});
+
+test('dueCharges: si el pago real ya está apuntado (mismo comercio e importe, ±3 días) no duplica', () => {
+  const real = { id: 'r', merchant: 'NETFLIX.COM', amount: 12, date: '2026-11-16', category: 'Suscripciones', source: 'auto' };
+  const r = G.dueCharges([sub({ anchor: '2026-01-15', lastGen: '2026-11-01' })], [real], '2026-11-20');
+  assert.eq(r.expenses, []);
+  const other = { ...real, amount: 15 };
+  assert.eq(G.dueCharges([sub({ anchor: '2026-01-15', lastGen: '2026-11-01' })], [other], '2026-11-20').expenses.length, 1);
+});
+
+test('withoutAutoCharge quita el cobro automático al que corresponde un pago real recién llegado', () => {
+  const auto = { id: 'sub-n-2026-11-15', merchant: 'Netflix', amount: 12, date: '2026-11-15', source: 'sub' };
+  const other = { id: 'x', merchant: 'Cine', amount: 12, date: '2026-11-15', source: 'manual' };
+  const incoming = { id: 'in-1', merchant: 'NETFLIX.COM', amount: 12, date: '2026-11-15' };
+  assert.eq(G.withoutAutoCharge([auto, other], incoming, [sub({ id: 'n' })]).map(e => e.id), ['x']);
+  assert.eq(G.withoutAutoCharge([auto], { ...incoming, amount: 9 }, [sub({ id: 'n' })]).map(e => e.id), ['sub-n-2026-11-15']);
+});
+
+// ---- cambiar la fecha de un gasto
+test('setExpenseDate cambia solo la fecha del gasto indicado y rechaza fechas inválidas', () => {
+  const list = [{ id: 'a', date: '2026-11-05', amount: 5 }, { id: 'b', date: '2026-11-06', amount: 7 }];
+  assert.eq(G.setExpenseDate(list, 'a', '2026-10-31'), [{ id: 'a', date: '2026-10-31', amount: 5 }, list[1]]);
+  assert.eq(G.setExpenseDate(list, 'a', ''), null);
+  assert.eq(G.setExpenseDate(list, 'a', '2026-02-30'), null);
+  assert.eq(G.setExpenseDate(list, 'a', 'ayer'), null);
+  assert.eq(G.setExpenseDate(list, 'zzz', '2026-10-31'), null);
+});

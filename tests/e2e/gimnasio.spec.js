@@ -36,6 +36,20 @@ const seedHealth = async page => {
 test.describe('Gimnasio', () => {
   test.beforeEach(async ({ page }) => { await freshStart(page, APP); });
 
+  test('quitar un ejercicio de una rutina pide confirmación', async ({ page }) => {
+    await seedRoutines(page);
+    await page.evaluate(() => window.GymApp.editRoutine('r1'));
+    const n = () => page.evaluate(() => document.querySelectorAll('#screen-editar .eblock').length);
+    expect(await n()).toBe(3);
+    await page.locator('#screen-editar [aria-label="Quitar ejercicio"]').first().click();
+    await expect(page.locator('#sheet [data-act="remove-ok"]')).toBeVisible();
+    await page.locator('#sheet .btn.ghost').click(); // Cancelar
+    expect(await n()).toBe(3);
+    await page.locator('#screen-editar [aria-label="Quitar ejercicio"]').first().click();
+    await page.locator('#sheet [data-act="remove-ok"]').click();
+    expect(await n()).toBe(2);
+  });
+
   test('Hoy: sincronización pequeña, pasos / distancia / kcal activas, entreno de hoy y recuperación, en ese orden', async ({ page }) => {
     await seedHealth(page);
     const order = await page.evaluate(() => ['#gy-sync', '.tiles3', '#wk-card', '.rec'].map(s => {

@@ -180,8 +180,8 @@
     };
 
     if (dish) {
-      $('dish-delete').onclick = () => {
-        if (!confirm(`¿Eliminar "${dish.name}"? Si está en el menú, se sustituirá por otra.`)) return;
+      $('dish-delete').onclick = async () => {
+        if (!await window.AppConfirm({ title: `¿Eliminar «${dish.name}»?`, text: 'Si está en el menú, se sustituirá por otra.', okLabel: 'Eliminar' })) return;
         C.dropDish(dish.id);
         keepQuery = true;
         C.save(); C.closeSheet(); C.render();

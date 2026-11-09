@@ -23,9 +23,9 @@ async function collect() {
     const { documents = [] } = await call('GET', BASE + '?pageSize=100');
     if (!documents.length) return;
     const known = new Set(G.state.expenses.map(e => e.id));
-    const fresh = documents.map(P.fromInboxDoc).filter(e => e && !known.has(e.id)).map(G.normalize);
+    const fresh = documents.map(P.fromInboxDoc).filter(e => e && !known.has(e.id));
     if (fresh.length) {
-      G.state.expenses = [...fresh, ...G.state.expenses];
+      G.addIncoming(fresh);
       G.save(); G.render();
       G.toast(fresh.length === 1 ? 'Pago apuntado: ' + fresh[0].merchant : fresh.length + ' pagos apuntados');
     }

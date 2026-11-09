@@ -75,6 +75,59 @@
     return n;
   }
 
+  // ---------- cobros de suscripciones que se apuntan solos como gasto
+  const near = (a, b) => Math.abs(daysBetween(a, b)) <= 3;
+  const sameAmount = (a, b) => Math.abs(a - b) < 0.005;
+
+  // Cobros pendientes de apuntar: los que caen entre la última vez que se miró (sub.lastGen) y hoy.
+  // La primera vez (sin lastGen) solo cuenta hoy, para no llenar el historial. Un cobro ya generado y
+  // borrado a mano no vuelve (se mira siempre desde lastGen). Si ya hay un pago real (otro origen)
+  // del mismo comercio e importe cerca de esa fecha, no se duplica. Devuelve los gastos nuevos, las
+  // suscripciones actualizadas y si algo cambió.
+  function dueCharges(subs, expenses, today) {
+    const out = [];
+    let changed = false;
+    const updated = subs.map(sub => {
+      const lower = sub.lastGen || addDays(today, -1);
+      const dates = [];
+      if (!sub.paused) {
+        for (let k = 0; k < 2000; k++) {
+          const d = chargeAt(sub, k);
+          if (d > today) break;
+          if (d > lower && (!sub.until || d <= sub.until)) dates.push(d);
+        }
+      }
+      const key = merchantKey(sub.name);
+      dates.forEach(d => {
+        const real = expenses.some(e => e.source !== 'sub' && key && fold(e.merchant || '').includes(key) && sameAmount(e.amount, sub.amount) && near(e.date, d));
+        if (!real) out.push({ id: 'sub-' + sub.id + '-' + d, amount: sub.amount, merchant: sub.name, date: d, category: 'Suscripciones', source: 'sub' });
+      });
+      // lastGen avanza al generar, la primera vez y si está pausada (para que al reanudar no haya atrasos)
+      if (dates.length || !sub.lastGen || (sub.paused && sub.lastGen < today)) {
+        if (sub.lastGen === today) return sub;
+        changed = true;
+        return { ...sub, lastGen: today };
+      }
+      return sub;
+    });
+    return { expenses: out, subs: updated, changed };
+  }
+
+  // Si llega un pago real de una suscripción y ya se había apuntado su cobro automático, se quita el automático.
+  function withoutAutoCharge(expenses, incoming, subs) {
+    const sub = matchSubscription(incoming, subs);
+    if (!sub) return expenses;
+    const i = expenses.findIndex(e => e.source === 'sub' && e.id.startsWith('sub-' + sub.id + '-') && sameAmount(e.amount, incoming.amount) && near(e.date, incoming.date));
+    return i < 0 ? expenses : expenses.filter((e, j) => j !== i);
+  }
+
+  // Cambia la fecha de un gasto ('AAAA-MM-DD'). null si la fecha no existe o el gasto no se encuentra.
+  function setExpenseDate(expenses, id, date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '') || fromUTC(Date.parse(date)) !== date) return null;
+    if (!expenses.some(e => e.id === id)) return null;
+    return expenses.map(e => e.id === id ? { ...e, date } : e);
+  }
+
   // ---------- datos para los gráficos
   const daysInMonth = month => new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
   const shiftMonth = (month, n) => addMonths(month + '-01', n).slice(0, 7);
@@ -322,7 +375,7 @@
   }
 
   const api = {
-    DEFAULT_MONTH_BUDGET, DEFAULT_CATEGORIES, parseCloudState, euros, fromQuery, fromInboxDoc, addCategory, removeCategory, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryTotals, toCSV,
+    DEFAULT_MONTH_BUDGET, DEFAULT_CATEGORIES, parseCloudState, dueCharges, withoutAutoCharge, setExpenseDate, euros, fromQuery, fromInboxDoc, addCategory, removeCategory, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryTotals, toCSV,
     isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, projectMonth,
     addDays, addMonths, daysBetween, yearlyCost, monthlyCost, subscriptionTotals, nextCharge, upcomingCharges,
     merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId

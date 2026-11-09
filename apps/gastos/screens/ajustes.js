@@ -38,7 +38,8 @@
       if (!list) { G.toast('Nombre vacío o repetido'); return; }
       G.state.categories = list; G.save(); G.render(); openCategories();
     };
-    $('sheet-body').querySelectorAll('[data-del]').forEach(b => { b.onclick = () => {
+    $('sheet-body').querySelectorAll('[data-del]').forEach(b => { b.onclick = async () => {
+      if (!await window.AppConfirm({ title: `¿Quitar la categoría «${b.dataset.del}»?`, text: 'Sus gastos pasarán a «Otros».', okLabel: 'Quitar' })) return;
       const r = P.removeCategory(G.state.categories, G.state.expenses, b.dataset.del);
       if (!r) return;
       G.state.categories = r.categories; G.state.expenses = r.expenses;
