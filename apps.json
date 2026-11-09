@@ -59,6 +59,7 @@
       "apps/gastos/gastoscore.js",
       "apps/gastos/core.js",
       "apps/gastos/main.js",
+      "apps/gastos/inbox.js",
       "apps/gastos/screens/resumen.js",
       "apps/gastos/screens/subs.js",
       "apps/gastos/screens/auto.js",

@@ -5,20 +5,28 @@
   const P = window.Planner;
   const { esc, eur } = G;
 
-  const URL_BASE = 'https://ruzzz05.github.io/mi-app/apps/gastos/';
+  // La clave de la API de Firebase no es secreta (va en la web pública); el secreto es TU_CLAVE, que solo está en el Atajo y en las reglas de Firestore.
+  const INBOX_URL = 'https://firestore.googleapis.com/v1/projects/mi-app-490b5/databases/(default)/documents/gastosInbox?key=AIzaSyCnFhLS9YxR1MnSDwwrKteWaW0CpMuqgdM';
 
   function render(el) {
     const list = P.pendingList(G.state.expenses);
     el.innerHTML = `
       <div class="screen-title">Pagos con Apple Pay</div>
       <div class="stat">
-        <b>Cómo se configura</b>
+        <b>Cómo se configura (una sola vez)</b>
         <ol class="steps">
-          <li>En la app Atajos, crea una automatización con el disparador <i>Transacción</i> (Wallet) que se ejecute sin preguntar.</li>
-          <li>Acción <i>Abrir URL</i> con esta dirección, sustituyendo los huecos por las variables <i>Importe</i> y <i>Comercio</i>:</li>
+          <li>En Atajos, ve a <i>Automatización</i> y pulsa +. Elige <i>Transacción</i>, marca tus tarjetas y activa <i>Ejecutar inmediatamente</i>.</li>
+          <li>Primera acción, <i>Texto</i>, con esto (sustituye TU_CLAVE y arrastra las variables <i>Importe</i> y <i>Comercio</i> a su sitio):</li>
         </ol>
-        <code class="url">${URL_BASE}?pago=[Importe]&amp;comercio=[Comercio]</code>
-        <small>Cada pago se abre en la app y queda aquí por revisar.</small>
+        <code class="url">{"fields":{"k":{"stringValue":"TU_CLAVE"},"amount":{"stringValue":"[Importe]"},"merchant":{"stringValue":"[Comercio]"}}}</code>
+        <ol class="steps" start="3">
+          <li>Segunda acción, <i>Obtener contenido de URL</i>, método <i>POST</i>, esta dirección:</li>
+        </ol>
+        <code class="url">${INBOX_URL}</code>
+        <ol class="steps" start="4">
+          <li>En esa acción: cabecera <i>Content-Type</i> = <i>application/json</i> y <i>Cuerpo de la solicitud</i> = <i>Archivo</i>, eligiendo el Texto anterior.</li>
+        </ol>
+        <small>Cada pago llega solo a la nube y la app lo apunta al abrirla. Si el comercio no se reconoce, queda aquí por revisar.</small>
       </div>
       <div class="secx"><h3>Por revisar (${list.length})</h3><small>Confirma la categoría</small></div>
       <div class="lst">${list.map(p => `<div class="pend">

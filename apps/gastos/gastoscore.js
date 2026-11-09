@@ -264,6 +264,20 @@
   }
 
 
+  // Un documento del buzón de Firestore (gastosInbox/{id}, escrito por el Atajo) -> gasto, o null si no vale.
+  // El id sale del documento para que importarlo dos veces no lo duplique. Si la categoría se adivina por
+  // el comercio entra ya apuntado; si no ('Otros') queda por revisar.
+  function fromInboxDoc(doc) {
+    const f = doc && doc.fields, name = doc && doc.name;
+    if (!f || typeof name !== 'string') return null;
+    const val = x => x && (x.stringValue !== undefined ? x.stringValue : x.integerValue);
+    const ts = Date.parse(doc.createTime);
+    const e = parseInbox({ amount: val(f.amount), merchant: val(f.merchant) || '', ts: Number.isFinite(ts) ? ts : Date.now() });
+    if (!e) return null;
+    const out = { ...e, id: 'in-' + name.split('/').pop() };
+    return out.category === 'Otros' ? { ...out, pending: true } : out;
+  }
+
   // 1234.5 -> "1.234,50 €" (con punto de miles también desde 4 cifras)
   function euros(n, decimals) {
     const neg = n < 0, fixed = Math.abs(n).toFixed(decimals), [int, dec] = fixed.split('.');
@@ -272,7 +286,7 @@
   }
 
   const api = {
-    DEFAULT_MONTH_BUDGET, DEFAULT_BUDGETS, euros, fromQuery, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryRows, toCSV,
+    DEFAULT_MONTH_BUDGET, DEFAULT_BUDGETS, euros, fromQuery, fromInboxDoc, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryRows, toCSV,
     isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, projectMonth,
     addDays, addMonths, daysBetween, yearlyCost, monthlyCost, subscriptionTotals, nextCharge, upcomingCharges,
     merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId

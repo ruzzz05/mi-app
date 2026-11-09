@@ -125,3 +125,32 @@ test('monthSummary suma por categoría y total', () => {
   assert.eq(s.total, 22);
   assert.eq(s.byCategory, [{ category: 'Comida', total: 15 }, { category: 'Ocio', total: 7 }]);
 });
+
+// ---- buzón en la nube (el Atajo escribe en Firestore; la app lo recoge)
+const docIn = (o = {}) => ({
+  name: 'projects/p/databases/(default)/documents/gastosInbox/AbC123',
+  createTime: '2026-01-05T10:00:00.5Z',
+  fields: { k: { stringValue: 's' }, amount: { stringValue: '12,50' }, merchant: { stringValue: 'MERCADONA' }, ...o }
+});
+
+test('fromInboxDoc convierte un documento del buzón en un gasto ya apuntado si la categoría se adivina', () => {
+  const e = G.fromInboxDoc(docIn());
+  assert.eq(e.id, 'in-AbC123');
+  assert.eq(e.amount, 12.5);
+  assert.eq(e.merchant, 'MERCADONA');
+  assert.eq(e.date, '2026-01-05');
+  assert.eq(e.category, 'Supermercado');
+  assert.eq(e.pending, undefined);
+});
+
+test('fromInboxDoc deja por revisar los comercios sin categoría clara', () => {
+  const e = G.fromInboxDoc(docIn({ merchant: { stringValue: 'Bar Pepe' } }));
+  assert.eq(e.category, 'Otros');
+  assert.eq(e.pending, true);
+});
+
+test('fromInboxDoc rechaza documentos sin importe válido', () => {
+  assert.eq(G.fromInboxDoc(docIn({ amount: { stringValue: 'abc' } })), null);
+  assert.eq(G.fromInboxDoc({ name: 'x/y/z', fields: {} }), null);
+  assert.eq(G.fromInboxDoc(null), null);
+});
