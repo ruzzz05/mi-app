@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Tests widget de Gastos</title></head>
+<body>
+<script src="../../../tests/harness.js"></script>
+<script src="../gastoscore.js"></script>
+<!-- El script de Scriptable usa await arriba del todo: aquí se carga como módulo para que el navegador lo acepte -->
+<script type="module" src="../widget/gastos-widget.js"></script>
+<script type="module" src="widget.test.js"></script>
+<script type="module">finish();</script>
+</body>
+</html>

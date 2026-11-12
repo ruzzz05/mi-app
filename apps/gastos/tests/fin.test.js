@@ -85,3 +85,15 @@ test('shiftMonth avanza y retrocede meses', () => {
   assert.eq(F.shiftMonth('2026-01', -1), '2025-12');
   assert.eq(F.shiftMonth('2026-12', 1), '2027-01');
 });
+
+test('subsMonthTotals: total del mes y lo que falta (cobros posteriores a hoy)', () => {
+  const subs = [
+    mk({ id: 'a', amount: 10, anchor: '2026-01-15' }),
+    mk({ id: 'b', amount: 5, anchor: '2026-01-20', until: '2026-11-30' }),
+    mk({ id: 'c', amount: 99, anchor: '2026-01-10', paused: true })
+  ];
+  assert.eq(F.subsMonthTotals(subs, '2026-11-10'), { total: 15, pending: 15, count: 2, pendingCount: 2 });
+  assert.eq(F.subsMonthTotals(subs, '2026-11-17'), { total: 15, pending: 5, count: 2, pendingCount: 1 });
+  assert.eq(F.subsMonthTotals(subs, '2026-11-20'), { total: 15, pending: 0, count: 2, pendingCount: 0 });
+  assert.eq(F.subsMonthTotals([], '2026-11-10'), { total: 0, pending: 0, count: 0, pendingCount: 0 });
+});

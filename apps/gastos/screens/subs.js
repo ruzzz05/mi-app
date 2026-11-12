@@ -67,6 +67,7 @@
     const today = G.todayISO();
     const subs = G.state.subs;
     const t = P.subscriptionTotals(subs, today);
+    const m = P.subsMonthTotals(subs, today);
     const detected = P.detectSubscriptions(G.state.expenses, subs);
     const ended = subs.filter(s => s.until && s.until < today);
     const live = subs.filter(s => !ended.includes(s));
@@ -91,6 +92,7 @@
         <small>Suscripciones al mes</small>
         <div class="big">${eur(t.monthly)}</div>
         <small>${eur(t.yearly)} al año · ${t.count} activa${t.count === 1 ? '' : 's'}</small>
+        <small>Este mes: ${eur(m.total)} · te falta ${eur(m.pending)}${m.pendingCount ? ` (${m.pendingCount} cobro${m.pendingCount === 1 ? '' : 's'})` : ''}</small>
       </section>
 
       ${detected.length ? `<div class="found-box"><b>He encontrado cobros repetidos</b>

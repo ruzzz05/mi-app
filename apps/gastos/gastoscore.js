@@ -157,6 +157,15 @@
     return out.sort((a, b) => a.date.localeCompare(b.date) || a.sub.name.localeCompare(b.sub.name, 'es'));
   }
 
+  // Suscripciones del mes en curso: total cobrado/previsto y lo que falta. Un cobro de hoy ya está
+  // apuntado como gasto (applySubs), así que "falta" son los cobros posteriores a hoy.
+  function subsMonthTotals(subs, today) {
+    const charges = chargesInMonth(subs, today.slice(0, 7));
+    const pendingList = charges.filter(c => c.date > today);
+    const sum = list => round2(list.reduce((t, c) => t + Number(c.sub.amount), 0));
+    return { total: sum(charges), pending: sum(pendingList), count: charges.length, pendingCount: pendingList.length };
+  }
+
   // Cuánto se habrá gastado a final de mes si sigue el ritmo actual.
   function projectMonth(total, today) {
     const day = Number(today.slice(8, 10));
@@ -461,7 +470,7 @@
 
   const api = {
     DEFAULT_MONTH_BUDGET, DEFAULT_CATEGORIES, parseCloudState, dueCharges, withoutAutoCharge, setExpenseDate, euros, fromQuery, fromInboxDoc, addCategory, removeCategory, confirmed, pendingList, confirmPending, monthStats, groupByDay, categoryTotals, toCSV,
-    isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, projectMonth,
+    isActive, remainingCharges, daysInMonth, shiftMonth, dailySeries, lastMonths, chargesInMonth, subsMonthTotals, projectMonth,
     addDays, addMonths, daysBetween, yearlyCost, monthlyCost, subscriptionTotals, nextCharge, upcomingCharges,
     merchantKey, matchSubscription, detectSubscriptions, parseAmount, parseInbox, guessCategory, monthSummary, newId,
     rememberedCategory, setMerchantCategory, applyRemembered,
