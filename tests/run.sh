@@ -19,6 +19,18 @@ for f in index.html $(grep -o '"path": "[^"]*"' apps.json | sed 's/"path": "//; 
   T=$(grep -n 'shared/theme\.js' "$f" | head -1 | cut -d: -f1)
   if [ -z "$A" ] || { [ -n "$T" ] && [ "$A" -gt "$T" ]; }; then echo "FALTA auth.js (o va despues de theme.js) en $f"; STATUS=1; else echo "PASS $f"; fi
 done
+# Todo archivo de apps.json y todo manifiesto/icono enlazado desde una pagina debe existir
+echo "== archivos de apps.json, manifiestos e iconos existen"
+for f in $(grep -o '"apps/[^"]*"' apps.json | tr -d '"'); do
+  if [ -f "$f" ]; then echo "PASS $f"; else echo "FALTA $f (listado en apps.json)"; STATUS=1; fi
+done
+for page in index.html $(grep -o '"path": "[^"]*"' apps.json | sed 's/"path": "//; s/"$//'); do
+  dir=$(dirname "$page")
+  for ref in $(grep -o '<link rel="\(manifest\|icon\|apple-touch-icon\)"[^>]*href="[^"]*"' "$page" | sed 's/.*href="//; s/"$//'); do
+    target=$(cd "$dir" && realpath -m "$ref" 2>/dev/null)
+    if [ -f "$target" ]; then echo "PASS $page -> $ref"; else echo "FALTA $ref enlazado desde $page"; STATUS=1; fi
+  done
+done
 for page in apps/*/tests/*.test.html shared/tests/*.test.html; do
   echo "== $page"
   URL="file:///$(cygpath -m "$PWD/$page")"

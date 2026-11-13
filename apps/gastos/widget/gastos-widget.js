@@ -56,11 +56,11 @@ if (typeof ListWidget !== 'undefined') {
   const SITE = 'https://ruzzz05.github.io/mi-app/';
   const DOMAIN = '@mi-app.invalid';                              // shared/authcore.js
   const KEY_REFRESH = 'miapp.gastos.refresh', KEY_UID = 'miapp.gastos.uid';
-  const GREEN = new Color('#12b76a'), RED = new Color('#e5484d');
-  const INK = Color.dynamic(new Color('#111111'), new Color('#f4f4f4'));
-  const INK2 = Color.dynamic(new Color('#666666'), new Color('#a0a0a0'));
-  const BG = Color.dynamic(new Color('#ffffff'), new Color('#111111'));
-  const TRACK = Color.dynamic(new Color('#e6e6e6'), new Color('#2a2a2a'));
+  const PURPLE = new Color('#a855f7'), RED = new Color('#e5484d');
+  const INK = new Color('#f5f5f5');
+  const INK2 = new Color('#a1a1aa');
+  const BG = new Color('#000000');
+  const TRACK = new Color('#2a2438');
 
   const fm = FileManager.local();
   const cachePath = name => fm.joinPath(fm.cacheDirectory(), 'miapp-gastos-' + name);
@@ -166,12 +166,12 @@ if (typeof ListWidget !== 'undefined') {
     w.backgroundColor = BG;
     w.url = SITE + 'apps/gastos/index.html';
     w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
-    line(w, 'GASTOS' + (fresh ? '' : ' · sin conexión'), Font.semiboldSystemFont(10), GREEN);
+    line(w, 'GASTOS' + (fresh ? '' : ' · sin conexión'), Font.semiboldSystemFont(10), PURPLE);
     w.addSpacer(6);
     line(w, m.title, Font.systemFont(12), INK2);
     line(w, m.amount, Font.boldSystemFont(wide ? 34 : 28), m.over ? RED : INK);
     w.addSpacer(6);
-    w.addImage(bar(m.pct, m.over ? RED : GREEN, wide ? 300 : 130)).imageSize = new Size(wide ? 300 : 130, 6);
+    w.addImage(bar(m.pct, m.over ? RED : PURPLE, wide ? 300 : 130)).imageSize = new Size(wide ? 300 : 130, 6);
     w.addSpacer(4);
     line(w, m.detail + (wide && m.pending ? ' · ' + m.pending : ''), Font.systemFont(10), INK2);
     w.addSpacer();
@@ -183,7 +183,7 @@ if (typeof ListWidget !== 'undefined') {
     const w = new ListWidget();
     w.backgroundColor = BG;
     w.refreshAfterDate = new Date(Date.now() + 5 * 60 * 1000);   // un aviso se reintenta pronto
-    line(w, 'GASTOS', Font.semiboldSystemFont(10), GREEN);
+    line(w, 'GASTOS', Font.semiboldSystemFont(10), PURPLE);
     w.addSpacer(6);
     const t = w.addText(text);
     t.font = Font.systemFont(12); t.textColor = INK2;

@@ -30,6 +30,10 @@
     "path": "apps/comidas/index.html",
     "accent": "#ff6b35",
     "files": [
+      "apps/comidas/manifest.webmanifest",
+      "apps/comidas/icon-180.png",
+      "apps/comidas/icon-192.png",
+      "apps/comidas/icon-512.png",
       "apps/comidas/comidas.css",
       "apps/comidas/recipes.js",
       "apps/comidas/photoscore.js",
