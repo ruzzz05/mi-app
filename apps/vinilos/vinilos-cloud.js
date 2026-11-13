@@ -17,6 +17,10 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
 };
 
+// Punto de sincronización de la cabecera (shared/syncbadge.js)
+const badge = b => { if (window.SyncBadge) window.SyncBadge.set(b); };
+const syncedAt = () => Number(store.get(SYNC_KEY)) || 0;
+
 const url = () =>
   `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/vinilos/coleccion`;
 
@@ -52,10 +56,17 @@ async function refresh(opts) {
   await M.ready;
   const lastSyncAt = Number(store.get(SYNC_KEY));
   if (!S.shouldReadRemote({ isEmpty: false, lastSyncAt, now: Date.now(), force: !!(opts && opts.force) })) return null;
-  const doc = await readRemote();
-  keep(doc);
-  store.set(SYNC_KEY, String(Date.now()));
-  return albumsOf(doc);
+  badge({ syncing: true });
+  try {
+    const doc = await readRemote();
+    keep(doc);
+    store.set(SYNC_KEY, String(Date.now()));
+    badge({ error: '', syncing: false, lastSyncAt: syncedAt() });
+    return albumsOf(doc);
+  } catch (err) {
+    badge({ error: String(err && err.message || err), syncing: false });
+    throw err;
+  }
 }
 
 // Lee el documento y aplica el cambio sobre lo que haya (así no se pierde nada de otro dispositivo)
@@ -67,6 +78,7 @@ async function change(fn) {
   await request('PATCH', S.toFirestoreFields(doc));
   keep(doc);
   store.set(SYNC_KEY, String(Date.now()));
+  badge({ error: '', lastSyncAt: syncedAt() });
   return next;
 }
 
@@ -83,6 +95,7 @@ window.VinilosCloud = {
 };
 
 // Botón "Sincronizar ahora": lee la colección de la nube aunque no toque todavía
+badge({ lastSyncAt: syncedAt() });
 const syncBtn = document.getElementById('sync-now');
 if (syncBtn) syncBtn.addEventListener('click', async () => {
   syncBtn.disabled = true;

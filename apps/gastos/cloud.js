@@ -13,6 +13,16 @@ const PUSH_DELAY = 1500;
 const OWNER_KEY = 'gastos.owner';          // uid de la cuenta a la que pertenecen los datos del móvil
 const PENDING_KEY = 'pending-sync.gastos'; // hay cambios sin subir (lo mira auth.js al cerrar sesión)
 
+const LAST_OK_KEY = 'gastos.lastOk';       // última vez que la nube y el móvil quedaron iguales
+
+// Punto de sincronización de la cabecera (shared/syncbadge.js)
+const badge = b => { if (window.SyncBadge) window.SyncBadge.set(b); };
+const markOk = () => {
+  const now = Date.now();
+  try { localStorage.setItem(LAST_OK_KEY, String(now)); } catch (e) { /* sin almacenamiento */ }
+  badge({ dirty: pending, error: '', syncing: false, lastSyncAt: now });
+};
+
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } },
@@ -23,6 +33,9 @@ let timer = null;
 let pending = store.get(PENDING_KEY) === '1';
 let connected = false;
 let warned = false;
+
+// Al cargar: el punto muestra ya la última sincronización conocida en este móvil
+badge({ dirty: pending, lastSyncAt: Number(store.get(LAST_OK_KEY)) || 0 });
 
 const uid = () => M.auth.currentUser.uid;
 const docUrl = () => `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/users/${uid()}/gastos/data`;
@@ -48,9 +61,11 @@ async function push() {
     S.toFirestoreFields({ updatedAt: G.state.updatedAt, json: JSON.stringify(snapshot()) }));
   pending = false;
   store.del(PENDING_KEY);
+  markOk();
 }
 
 function warn(err) {
+  badge({ error: String(err && err.message || err), syncing: false });
   console.warn('Gastos: nube no disponible por ahora:', err);
   if (!warned) { warned = true; G.toast('No se pudo sincronizar. Tus datos siguen en el móvil.'); }
 }
@@ -85,12 +100,14 @@ async function connect() {
     } else if (what === 'upload') pending = true;
     connected = true;
     await flush();
+    if (!pending) markOk();
     return true;
   } catch (err) { warn(err); return false; }
 }
 
 // Botón "Sincronizar ahora": vuelve a leer la nube y sube lo pendiente
 async function syncNow() {
+  badge({ syncing: true });
   const ok = await connect();
   if (ok && !pending) G.toast('Sincronizado');
 }
@@ -104,6 +121,7 @@ if (syncBtn) syncBtn.addEventListener('click', () => {
 G.onSave = () => {
   pending = true;
   store.set(PENDING_KEY, '1');
+  badge({ dirty: true });
   clearTimeout(timer);
   timer = setTimeout(flush, PUSH_DELAY);
 };
