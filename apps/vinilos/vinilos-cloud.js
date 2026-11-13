@@ -82,6 +82,17 @@ window.VinilosCloud = {
   add: album => change(list => (list.some(a => a.id === album.id) ? list : list.concat(album)))
 };
 
+// Botón "Sincronizar ahora": lee la colección de la nube aunque no toque todavía
+const syncBtn = document.getElementById('sync-now');
+if (syncBtn) syncBtn.addEventListener('click', async () => {
+  syncBtn.disabled = true;
+  try {
+    const list = await refresh({ force: true });
+    if (list && window.vinilosSetExtras) window.vinilosSetExtras(list);
+  } catch (err) { console.warn('Vinilos (nube):', err); }
+  finally { syncBtn.disabled = false; }
+});
+
 // La página se pinta con lo que ya hay en el móvil y se completa con la nube si toca
 if (window.vinilosSetExtras) {
   window.vinilosSetExtras(getCached());

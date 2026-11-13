@@ -64,7 +64,7 @@ async function flush() {
 async function connect() {
   try {
     const session = await Promise.race([M.ready.then(() => true), new Promise(r => setTimeout(() => r(false), 10000))]);
-    if (!session) return;
+    if (!session) return false;
     // Los datos del móvil son de una cuenta; si ahora entra otra, no se suben a la nueva.
     const action = S.ownerAction(store.get(OWNER_KEY), uid());
     if (action === 'wipe') { pending = false; store.del(PENDING_KEY); G.reset(); }
@@ -85,8 +85,21 @@ async function connect() {
     } else if (what === 'upload') pending = true;
     connected = true;
     await flush();
-  } catch (err) { warn(err); }
+    return true;
+  } catch (err) { warn(err); return false; }
 }
+
+// Botón "Sincronizar ahora": vuelve a leer la nube y sube lo pendiente
+async function syncNow() {
+  const ok = await connect();
+  if (ok && !pending) G.toast('Sincronizado');
+}
+
+const syncBtn = document.getElementById('sync-now');
+if (syncBtn) syncBtn.addEventListener('click', () => {
+  syncBtn.disabled = true;
+  syncNow().finally(() => { syncBtn.disabled = false; });
+});
 
 G.onSave = () => {
   pending = true;
